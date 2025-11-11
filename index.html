@@ -7,15 +7,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Tambahkan Supabase Client -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        window.supabase = createClient;
+    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
         .sidebar-link:hover {
-            background-color: #047857; /* emerald-700 */
+            background-color: #047857; /* a darker green */
         }
         .sidebar-link-active {
-            background-color: #065f46; /* emerald-800 */
+            background-color: #065f46; /* an even darker green for active state */
             font-weight: 600;
         }
         /* Custom scrollbar for better aesthetics */
@@ -23,25 +28,32 @@
             width: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #f0fdf4; /* green-50 */
+            background: #f0fdf4;
         }
         ::-webkit-scrollbar-thumb {
-            background: #34d399; /* emerald-400 */
+            background: #34d399;
             border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #10b981; /* emerald-500 */
+            background: #10b981;
         }
         .prose { max-width: none; }
-        .prose h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .prose p, .prose ul, .prose ol { margin-bottom: 1rem; }
+        .prose h1, .prose h2, .prose h3, .prose h4 { color: #064e3b; }
+        .prose p { margin-bottom: 1rem; }
         .prose ul, .prose ol { list-style-position: inside; padding-left: 1rem;}
         .prose li { margin-bottom: 0.5rem; }
 
+        @keyframes wobble {
+            0%, 100% { transform: translateY(0) rotate(0); }
+            25% { transform: translateY(-5px) rotate(-2deg); }
+            50% { transform: translateY(0) rotate(2deg); }
+            75% { transform: translateY(5px) rotate(0); }
+        }
         .login-button-theme {
-            background: linear-gradient(45deg, #a8e063, #56ab2f);
+            animation: wobble 6s ease-in-out infinite;
+            background: linear-gradient(45deg, #a7f3d0, #6ee7b7, #34d399);
             transition: all 0.3s ease;
-            color: white;
+            color: #064e3b;
         }
         .login-button-theme:hover {
             box-shadow: 0 15px 25px rgba(0,0,0,0.15);
@@ -50,231 +62,56 @@
         .btn-glow-green:hover { box-shadow: 0 0 12px 2px rgba(34, 197, 94, 0.4); }
         .btn-glow-red:hover { box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.4); }
         .btn-glow-gray:hover { box-shadow: 0 0 12px 2px rgba(107, 114, 128, 0.3); }
+
+        /* Chat styles */
+        .chat-bubble-sent {
+            background-color: #059669;
+            color: white;
+            border-radius: 1rem 1rem 0.25rem 1rem;
+        }
+        .chat-bubble-received {
+            background-color: #e5e7eb;
+            color: #1f2937;
+            border-radius: 1rem 1rem 1rem 0.25rem;
+        }
     </style>
 </head>
 <body class="bg-emerald-50">
-    <div id="app" class="transition-all duration-300"></div>
+    <div id="app" class="transition-all duration-300 flex items-center justify-center h-screen">
+        <i data-lucide="loader-2" class="animate-spin w-12 h-12 text-emerald-500"></i>
+    </div>
 
     <script type="module">
-        // Initializing Lucide icons
-        lucide.createIcons();
+        // --- INISIALISASI SUPABASE ---
+        const SUPABASE_URL = 'https://zkcsplphwwhzpzxsfxme.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprY3NwbHBod3doenB6eHNmeG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzODE4NjgsImV4cCI6MjA3NTk1Nzg2OH0.8s_rN22NLrN8Rl1N9Ne0n0KqX8FOItcTNBryv_PxhEY';
+        
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+            document.getElementById('app').innerHTML = `<div class="text-center p-8 bg-white rounded-lg shadow-xl max-w-2xl mx-auto"><h1 class="text-2xl font-bold text-red-600">Konfigurasi Database Gagal!</h1><p class="mt-4 text-gray-700">Pastikan variabel SUPABASE_URL dan SUPABASE_ANON_KEY di dalam kode sudah terisi dengan benar.</p></div>`;
+            throw new Error("Supabase URL and Key not configured.");
+        }
 
+        const supabase = window.supabase(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
         // --- APLIKASI UTAMA ---
         const app = document.getElementById('app');
-
-        // --- DATABASE SIMULASI ---
-        let db = {
-            users: [
-                { id: 'BudiSantoso', password: '123', role: 'siswa', name: 'Budi Santoso' },
-                { id: 'AniYudhoyono', password: '123', role: 'siswa', name: 'Ani Yudhoyono' },
-                { id: 'AdifaMelaniPutri', password: '123', role: 'siswa', name: 'Adifa Melani Putri' },
-                { id: 'AnastasyaZajuli', password: '123', role: 'siswa', name: 'Anastasya Zajuli' },
-                { id: 'AndiniPutriPrasetyo', password: '123', role: 'siswa', name: 'Andini Putri Prasetyo' },
-                { id: 'Annisasetiawan', password: '123', role: 'siswa', name: 'Annisa setiawan' },
-                { id: 'AuraZahrani', password: '123', role: 'siswa', name: 'Aura Zahrani' },
-                { id: 'AurelliaRahman', password: '123', role: 'siswa', name: 'Aurellia Rahman' },
-                { id: 'CantikaPujiarti', password: '123', role: 'siswa', name: 'Cantika Pujiarti' },
-                { id: 'DarriellRiyadi', password: '123', role: 'siswa', name: 'Darriell Riyadi' },
-                { id: 'FazleMawla', password: '123', role: 'siswa', name: 'Fazle Mawla' },
-                { id: 'Fitriani', password: '123', role: 'siswa', name: 'Fitriani' },
-                { id: 'GalangRizkySadaya', password: '123', role: 'siswa', name: 'Galang Rizky Sadaya' },
-                { id: 'IndiraArpiana', password: '123', role: 'siswa', name: 'Indira Arpiana' },
-                { id: 'Irfanhafizhrizqullah', password: '123', role: 'siswa', name: 'Irfan hafizh rizqullah' },
-                { id: 'Kalilaazhara', password: '123', role: 'siswa', name: 'Kalila azhara' },
-                { id: 'KaniyaJuliaUtami', password: '123', role: 'siswa', name: 'Kaniya Julia Utami' },
-                { id: 'KautsarHidayatullah', password: '123', role: 'siswa', name: 'Kautsar Hidayatullah' },
-                { id: 'MikaAlGhaniYasin', password: '123', role: 'siswa', name: 'Mika Al Ghani Yasin' },
-                { id: 'Muhammadfaridramadhan', password: '123', role: 'siswa', name: 'Muhammad farid ramadhan' },
-                { id: 'MuhamadLanggiYuriPradipta', password: '123', role: 'siswa', name: 'Muhamad Langgi Yuri Pradipta' },
-                { id: 'MuhammadAddarQuthni', password: '123', role: 'siswa', name: 'Muhammad Addar Quthni' },
-                { id: 'MuhammadAwaAbdurahman', password: '123', role: 'siswa', name: 'Muhammad Awa Abdurahman' },
-                { id: 'NadiraIndriani', password: '123', role: 'siswa', name: 'Nadira Indriani' },
-                { id: 'NiaPutriRamadhani', password: '123', role: 'siswa', name: 'Nia Putri Ramadhani' },
-                { id: 'PutriAlysakeyla', password: '123', role: 'siswa', name: 'Putri Alysa keyla' },
-                { id: 'RaidDhaylaJabar', password: '123', role: 'siswa', name: 'Raid Dhayla Jabar' },
-                { id: 'RadityaGunawan', password: '123', role: 'siswa', name: 'Raditya Gunawan' },
-                { id: 'Rafiahmadalgibran', password: '123', role: 'siswa', name: 'Rafi ahmad algibran' },
-                { id: 'RainaMaira', password: '123', role: 'siswa', name: 'Raina Maira' },
-                { id: 'Raisyaariyanti', password: '123', role: 'siswa', name: 'Raisya ariyanti' },
-                { id: 'RazipAdiPratama', password: '123', role: 'siswa', name: 'Razip Adi Pratama' },
-                { id: 'RinduSalsabila', password: '123', role: 'siswa', name: 'Rindu Salsabila' },
-                { id: 'RubianaAzzahra', password: '123', role: 'siswa', name: 'Rubiana Azzahra' },
-                { id: 'ShintaRahayuPertiwiSujai', password: '123', role: 'siswa', name: 'Shinta Rahayu Pertiwi Sujai' },
-                { id: 'SitiAliftaAzzahraKhumairoh', password: '123', role: 'siswa', name: 'Siti Alifta Azzahra Khumairoh' },
-                { id: 'SulthanRifqi', password: '123', role: 'siswa', name: 'Sulthan Rifqi' },
-                { id: 'TiaraDwiRamadhani', password: '123', role: 'siswa', name: 'Tiara Dwi Ramadhani' },
-                { id: 'gofaru', password: '123', role: 'guru_bk', name: 'Pak Gofarudiansyah' },
-                { id: 'rohman', password: '123', role: 'guru_bk', name: 'Pak Rohman' },
-                { id: 'osis1', password: '123', role: 'osis', name: 'Citra Kirana', position: 'Ketua OSIS' },
-                { id: 'pembina1', password: '123', role: 'pembina', name: 'Drs. Hartono' },
-                { id: 'gurumapel1', password: '123', role: 'guru_mapel', name: 'Ibu Susi (Matematika)' },
-                { id: 'admin', password: '123', role: 'admin', name: 'Admin Utama'}
-            ],
-            appointments: [
-                { id: 1, studentId: 'BudiSantoso', counselorId: 'gofaru', date: '2025-10-05', time: '10:00', topic: 'Kesulitan Belajar', status: 'Disetujui' },
-                { id: 2, studentId: 'AniYudhoyono', counselorId: 'gofaru', date: '2025-10-06', time: '14:00', topic: 'Masalah Pertemanan', status: 'Menunggu' },
-            ],
-            behaviorReports: [
-                { id: 1, studentId: 'BudiSantoso', teacherId: 'gurumapel1', date: '2025-09-30', report: 'Budi sangat aktif bertanya di kelas Matematika hari ini. Pertahankan!' }
-            ],
-            studentTasks: [
-                { id: 1, studentId: 'BudiSantoso', teacherId: 'gurumapel1', date: '2025-09-28', task: 'Presentasi Kelompok', score: 85, notes: 'Mampu memimpin kelompok dengan baik.'}
-            ],
-            chats: {
-                'BudiSantoso-gofaru': [
-                    { sender: 'BudiSantoso', text: 'Selamat pagi, Pak. Saya ingin bertanya sesuatu.', timestamp: new Date().setHours(8, 0) },
-                    { sender: 'gofaru', text: 'Pagi, Budi. Silakan, apa yang bisa Bapak bantu?', timestamp: new Date().setHours(8, 5) },
-                ],
-                 'AniYudhoyono-rohman': [
-                    { sender: 'AniYudhoyono', text: 'Permisi Pak Rohman, saya mau konsultasi.', timestamp: new Date().setHours(9, 15) },
-                ]
-            },
-            articles: [
-                { 
-                    id: 3, 
-                    title: '🧠 5 Cara Mengatasi Stres Menjelang Ujian', 
-                    content: 'Stres menjelang ujian adalah hal yang wajar, tapi jika dibiarkan berlebihan, bisa mengganggu konsentrasi...',
-                    fullContent: `<div class="prose"><h3>✅ 1. Buat Jadwal Belajar yang Teratur</h3>
-<p>“Waktu yang terencana adalah setengah dari keberhasilan.”</p>
-<ul>
-    <li>Bagi waktu belajar menjadi sesi pendek (misalnya 30–45 menit).</li>
-    <li>Gunakan teknik seperti Pomodoro (25 menit belajar, 5 menit istirahat).</li>
-    <li>Fokus pada materi yang paling penting terlebih dahulu.</li>
-</ul>
-<p><em>📝 Tips: Gunakan kalender atau aplikasi pengingat supaya kamu tetap konsisten.</em></p>
-
-<h3>✅ 2. Jaga Pola Tidur dan Makan</h3>
-<p>“Otak yang sehat berasal dari tubuh yang sehat.”</p>
-<ul>
-    <li>Hindari begadang, terutama saat mendekati hari ujian.</li>
-    <li>Tidur minimal 7–8 jam sehari agar otak bisa menyimpan informasi lebih baik.</li>
-    <li>Makan makanan bergizi (hindari kafein berlebihan dan junk food).</li>
-</ul>
-<p><em>🥦 Tips: Sarapan sehat sebelum belajar atau ujian bisa meningkatkan konsentrasi.</em></p>
-
-<h3>✅ 3. Kurangi Gangguan dan Fokus pada Diri Sendiri</h3>
-<p>“Hindari membandingkan diri dengan orang lain.”</p>
-<ul>
-    <li>Jangan terlalu sering melihat progres belajar teman, apalagi di media sosial.</li>
-    <li>Fokus pada apa yang bisa kamu kontrol: waktu belajar, pemahaman, dan persiapan diri.</li>
-</ul>
-<p><em>📵 Tips: Gunakan mode “Do Not Disturb” di HP saat belajar.</em></p>
-
-<h3>✅ 4. Lakukan Relaksasi Ringan</h3>
-<p>“Tubuh rileks, pikiran pun tenang.”</p>
-<ul>
-    <li>Coba teknik pernapasan: tarik napas dalam-dalam, tahan 4 detik, hembuskan perlahan.</li>
-    <li>Bisa juga dengan jalan kaki sebentar, mendengarkan musik yang menenangkan, atau meditasi ringan.</li>
-</ul>
-<p><em>🧘 Tips: Cukup 5–10 menit relaksasi bisa mengurangi ketegangan.</em></p>
-
-<h3>✅ 5. Berani Minta Bantuan</h3>
-<p>“Kamu tidak sendiri, dan tidak harus menghadapinya sendirian.”</p>
-<ul>
-    <li>Ceritakan rasa cemasmu ke guru BK, orang tua, atau teman dekat.</li>
-    <li>Jangan ragu bertanya ke guru jika ada materi yang belum dipahami.</li>
-    <li>Bisa juga ikut kelompok belajar supaya kamu merasa lebih siap.</li>
-</ul>
-<p><em>🤝 Tips: Konseling bisa jadi tempat yang aman untuk menenangkan pikiran.</em></p>
-
-<p><strong>🌟 Penutup:</strong><br>Stres menjelang ujian bisa diatasi dengan persiapan yang matang, istirahat cukup, dan menjaga mental tetap tenang. Ingat, ujian bukan akhir segalanya—tetapi bagian dari proses belajar kamu.</p></div>`,
-                    author: 'Pak Gofarudiansyah', 
-                    category: 'Manajemen Stres',
-                    publishedDate: '2025-09-25'
-                },
-                { 
-                    id: 4, 
-                    title: 'Kunci Sukses Belajar: 7 Tips Manajemen Waktu', 
-                    content: 'Manajemen waktu adalah salah satu skill terpenting yang harus dimiliki setiap siswa. Dengan mengatur waktu...',
-                    fullContent: `<div class="prose"><p>Manajemen waktu adalah kunci untuk belajar lebih cerdas, bukan lebih keras. Berikut 7 tips yang bisa kamu terapkan:</p>
-<ol>
-    <li><strong>Buat Daftar Prioritas:</strong> Gunakan matriks Eisenhower (Penting & Mendesak, Penting & Tidak Mendesak, dst.) untuk menentukan tugas mana yang harus dikerjakan lebih dulu.</li>
-    <li><strong>Gunakan Kalender:</strong> Catat semua tenggat waktu tugas, ujian, dan kegiatan lainnya. Ini membantumu melihat gambaran besar.</li>
-    <li><strong>Atur Waktu Belajar:</strong> Tentukan waktu spesifik setiap hari untuk belajar dan patuhi jadwal tersebut seolah-olah itu adalah janji penting.</li>
-    <li><strong>Hindari Multitasking:</strong> Fokus pada satu tugas pada satu waktu. Multitasking sering kali justru menurunkan produktivitas dan kualitas pekerjaan.</li>
-    <li><strong>Ambil Jeda Teratur:</strong> Otakmu butuh istirahat. Teknik Pomodoro (25 menit kerja, 5 menit istirahat) sangat efektif untuk menjaga fokus.</li>
-    <li><strong>Rapikan Area Belajar:</strong> Lingkungan yang bersih dan terorganisir membantu pikiranmu tetap jernih dan tidak mudah terganggu.</li>
-    <li><strong>Evaluasi di Akhir Hari:</strong> Luangkan 5-10 menit sebelum tidur untuk meninjau apa yang sudah kamu capai dan merencanakan hari esok.</li>
-</ol></div>`,
-                    author: 'Pak Rohman', 
-                    category: 'Tips Belajar',
-                    publishedDate: '2025-09-22'
-                },
-                { 
-                    id: 5, 
-                    title: '🚀 Cara Meningkatkan Kepercayaan Diri di Sekolah', 
-                    content: 'Merasa minder atau kurang percaya diri adalah hal yang normal. Namun, kamu bisa mengatasinya dengan...',
-                    fullContent: `<div class="prose"><p>Kepercayaan diri adalah fondasi kesuksesan, baik di bidang akademik maupun sosial. Berikut cara membangunnya:</p>
-<ul>
-    <li><strong>Kenali Kelebihanmu:</strong> Setiap orang punya bakat. Mungkin kamu jago olahraga, seni, atau matematika. Fokus dan kembangkan kelebihanmu itu.</li>
-    <li><strong>Tetapkan Tujuan Kecil:</strong> Jangan langsung menargetkan hal besar. Mulailah dari tujuan-tujuan kecil yang bisa kamu capai. Setiap keberhasilan kecil akan membangun rasa percaya dirimu.</li>
-    <li><strong>Berpenampilan Rapi:</strong> Cara kamu berpakaian dan merawat diri memengaruhi cara kamu merasa. Berpakaian rapi bisa membuatmu merasa lebih baik tentang dirimu sendiri.</li>
-    <li><strong>Berani Berpendapat:</strong> Jangan takut untuk angkat tangan di kelas atau memberikan ide saat diskusi kelompok. Suaramu berharga.</li>
-    <li><strong>Jangan Bandingkan Diri:</strong> Ingat, setiap orang punya perjalanannya masing-masing. Fokus pada kemajuan dirimu sendiri, bukan pencapaian orang lain.</li>
-</ul></div>`,
-                    author: 'Pak Gofarudiansyah', 
-                    category: 'Pengembangan Diri',
-                    publishedDate: '2025-09-28'
-                },
-                { 
-                    id: 6, 
-                    title: '🤝 Membangun Pertemanan yang Sehat dan Positif', 
-                    content: 'Teman adalah bagian penting dari kehidupan sekolah. Pertemanan yang sehat bisa membuatmu lebih semangat...',
-                    fullContent: `<div class="prose"><p>Lingkungan pertemanan sangat memengaruhi semangat dan kebahagiaanmu di sekolah. Berikut ciri-ciri pertemanan yang sehat:</p>
-<ul>
-    <li><strong>Saling Mendukung:</strong> Teman yang baik akan ikut senang saat kamu berhasil dan memberimu semangat saat kamu gagal.</li>
-    <li><strong>Bisa Dipercaya:</strong> Kamu bisa bercerita tentang apa pun tanpa takut dihakimi atau rahasiamu dibocorkan.</li>
-    <li><strong>Menghargai Perbedaan:</strong> Kalian tidak harus selalu setuju dalam segala hal. Teman yang baik menghargai opinimu meskipun berbeda.</li>
-    <li><strong>Jujur tapi Baik:</strong> Mereka berani memberimu kritik yang membangun dengan cara yang tidak menyakitkan.</li>
-    <li><strong>Tidak Membawa Pengaruh Buruk:</strong> Pertemanan yang sehat tidak akan menjerumuskanmu ke dalam hal-hal negatif.</li>
-</ul></div>`,
-                    author: 'Pak Rohman', 
-                    category: 'Sosial',
-                    publishedDate: '2025-09-26'
-                },
-                { 
-                    id: 7, 
-                    title: '💡 Jangan Takut Gagal: Jadikan Kesalahan Guru Terbaik', 
-                    content: 'Semua orang pernah gagal, bahkan orang-orang sukses sekalipun. Kunci utamanya adalah bagaimana kamu bangkit...',
-                    fullContent: `<div class="prose"><p>Banyak orang takut gagal sehingga mereka tidak berani mencoba. Padahal, kegagalan adalah bagian tak terpisahkan dari proses belajar. Ubah cara pandangmu terhadap kegagalan:</p>
-<ul>
-    <li><strong>Kegagalan Bukan Akhir:</strong> Anggaplah kegagalan sebagai umpan balik (feedback). Ia memberitahumu cara mana yang tidak berhasil, sehingga kamu bisa mencoba cara lain.</li>
-    <li><strong>Identifikasi Penyebabnya:</strong> Setelah gagal, jangan hanya meratapinya. Cari tahu apa yang salah. Apakah persiapanmu kurang? Apakah strategimu keliru?</li>
-    <li><strong>Ambil Pelajarannya:</strong> Setiap kesalahan mengandung pelajaran berharga yang tidak akan kamu dapatkan jika kamu selalu berhasil.</li>
-    <li><strong>Coba Lagi dengan Lebih Cerdas:</strong> Gunakan pelajaran yang kamu dapat untuk mencoba lagi dengan pendekatan yang lebih baik.</li>
-</ul>
-<p>Ingat kutipan dari Thomas Edison: "Saya tidak gagal. Saya hanya menemukan 10.000 cara yang tidak akan berhasil."</p></div>`,
-                    author: 'Pak Gofarudiansyah', 
-                    category: 'Motivasi',
-                    publishedDate: '2025-09-24'
-                }
-            ],
-            proposals: [
-                { id: 1, title: 'Lomba Cerdas Cermat Antar Kelas', pic: 'Citra Kirana', date: '2025-11-15', budget: 1500000, description: 'Meningkatkan semangat kompetisi siswa.', status: 'Disetujui' },
-                { id: 2, title: 'Bakti Sosial Panti Asuhan', pic: 'Citra Kirana', date: '2025-12-20', budget: 3000000, description: 'Menumbuhkan rasa kepedulian sosial.', status: 'Menunggu' }
-            ],
-            finances: [
-                { id: 1, date: '2025-09-01', description: 'Dana Awal OSIS', type: 'Pemasukan', amount: 5000000 },
-                { id: 2, date: '2025-09-10', description: 'Pembelian Spanduk HUT Sekolah', type: 'Pengeluaran', amount: 250000 },
-            ],
-            forum: [
-                { id: 1, title: 'Pembahasan Rencana Class Meeting', author: 'Citra Kirana', replies: [{author: 'Budi Santoso', text: 'Setuju, kita adakan di minggu kedua Desember.'}]}
-            ]
-        };
 
         // --- STATE MANAGEMENT ---
         const state = {
             currentUser: null,
             currentPage: 'dashboard',
-            activeChatUserId: null,
+            activeChatPartner: null, // {id, name}
+            messages: [],
+            messageSubscription: null,
             modal: {
                 isOpen: false,
+                header: '',
                 content: ''
             }
         };
 
         // --- FUNGSI UTAMA RENDER ---
-        function render() {
+        async function render() {
             lucide.createIcons();
             if (state.modal.isOpen) {
                 renderModal();
@@ -296,58 +133,31 @@
             switch(role) {
                 case 'siswa':
                     switch (state.currentPage) {
-                        case 'dashboard': content = SiswaDashboard(); break;
-                        case 'janji-temu': content = SiswaJanjiTemu(); break;
-                        case 'chat': content = SiswaChat(); break;
-                        case 'materi': content = MateriPage(); break;
-                        case 'pantau-diri': content = PantauDiriPage(); break;
-                        case 'proposal': if(state.currentUser.isOsis) content = OsisProposal(); break;
-                        case 'keuangan': if(state.currentUser.isOsis) content = OsisKeuangan(); break;
-                        case 'forum': if(state.currentUser.isOsis) content = OsisForum(); break;
-                        default: content = SiswaDashboard();
+                        case 'dashboard': content = await SiswaDashboard(); break;
+                        case 'janji-temu': content = await SiswaJanjiTemu(); break;
+                        case 'materi-bk': content = await SiswaMateriBk(); break;
+                        case 'chat-konseling': content = await SiswaChat(); break;
+                        default: state.currentPage = 'dashboard'; content = await SiswaDashboard();
                     }
                     break;
                 case 'guru_bk':
-                    switch (state.currentPage) {
-                        case 'dashboard': content = GuruBKDashboard(); break;
-                        case 'janji-temu': content = GuruBKJanjiTemu(); break;
-                        case 'chat': content = GuruBKChat(); break;
-                        case 'materi': content = MateriPage(true); break;
-                        default: content = GuruBKDashboard();
-                    }
-                    break;
-                case 'osis':
-                    switch (state.currentPage) {
-                        case 'dashboard': content = OsisDashboard(); break;
-                        case 'proposal': content = OsisProposal(); break;
-                        case 'keuangan': content = OsisKeuangan(); break;
-                        case 'forum': content = OsisForum(); break;
-                        default: content = OsisDashboard();
-                    }
-                    break;
-                case 'pembina':
                      switch (state.currentPage) {
-                        case 'dashboard': content = PembinaDashboard(); break;
-                        case 'proposal': content = OsisProposal(true); break;
-                        case 'keuangan': content = OsisKeuangan(); break;
-                        default: content = PembinaDashboard();
+                        case 'dashboard': content = await GuruBKDashboard(); break;
+                        case 'janji-temu': content = await GuruBKJanjiTemu(); break;
+                        case 'chat-siswa': content = await GuruBKChat(); break;
+                        default: state.currentPage = 'dashboard'; content = await GuruBKDashboard();
                     }
                     break;
-                case 'guru_mapel':
+                 case 'admin':
                     switch (state.currentPage) {
-                        case 'dashboard': content = GuruMapelDashboard(); break;
-                        case 'lapor-perilaku': content = LaporPerilakuPage(); break;
-                        case 'pekerjaan-siswa': content = PekerjaanSiswaPage(); break;
-                        default: content = GuruMapelDashboard();
+                        case 'dashboard': content = await AdminDashboard(); break;
+                        case 'kelola-pengguna': content = await AdminKelolaPengguna(); break;
+                        case 'kelola-materi': content = await AdminKelolaMateri(); break;
+                        default: state.currentPage = 'dashboard'; content = await AdminDashboard();
                     }
                     break;
-                case 'admin':
-                    switch (state.currentPage) {
-                        case 'dashboard': content = AdminDashboard(); break;
-                        case 'kelola-pengguna': content = KelolaPenggunaPage(); break;
-                        default: content = AdminDashboard();
-                    }
-                    break;
+                default:
+                    content = `<h3 class="text-3xl font-semibold text-emerald-900">Selamat Datang, ${state.currentUser.name}!</h3><p>Peran Anda (${role}) belum memiliki halaman khusus.</p>`;
             }
             
             app.innerHTML = `
@@ -364,6 +174,7 @@
                 </div>
             `;
             attachEventListeners();
+            lucide.createIcons();
         }
         
         // --- EVENT LISTENERS ---
@@ -372,6 +183,12 @@
             document.querySelectorAll('.sidebar-link').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
+                    // Hentikan subscription chat jika pindah halaman
+                    if (state.messageSubscription) {
+                        supabase.removeChannel(state.messageSubscription);
+                        state.messageSubscription = null;
+                        state.activeChatPartner = null;
+                    }
                     state.currentPage = e.currentTarget.getAttribute('data-page');
                     render();
                 });
@@ -380,1126 +197,455 @@
             const role = state.currentUser.role;
             if (role === 'siswa') {
                 if (state.currentPage === 'janji-temu') attachSiswaJanjiTemuListeners();
-                if (state.currentPage === 'chat') attachSiswaChatListeners();
-                if (state.currentPage === 'materi') attachMateriPageListeners();
-                if (state.currentUser.isOsis) {
-                    if (state.currentPage === 'proposal') attachOsisProposalListeners();
-                    if (state.currentPage === 'keuangan') attachOsisKeuanganListeners();
-                    if (state.currentPage === 'forum') attachOsisForumListeners();
-                }
+                if (state.currentPage === 'materi-bk') attachSiswaMateriBkListeners();
+                if (state.currentPage === 'chat-konseling') attachChatListeners();
             } else if (role === 'guru_bk') {
                 if(state.currentPage === 'janji-temu') attachGuruBKJanjiTemuListeners();
-                if(state.currentPage === 'chat') attachGuruBKChatListeners();
-                if(state.currentPage === 'materi') attachMateriPageListeners(true);
-            } else if (role === 'osis' || role === 'pembina') {
-                if (state.currentPage === 'proposal') attachOsisProposalListeners(role === 'pembina');
-                if (state.currentPage === 'keuangan') attachOsisKeuanganListeners();
-                 if (role === 'osis' && state.currentPage === 'forum') attachOsisForumListeners();
-            } else if (role === 'guru_mapel') {
-                if (state.currentPage === 'lapor-perilaku') attachLaporPerilakuListeners();
-                if (state.currentPage === 'pekerjaan-siswa') attachPekerjaanSiswaListeners();
+                if(state.currentPage === 'chat-siswa') attachChatListeners();
             } else if (role === 'admin') {
-                if (state.currentPage === 'kelola-pengguna') attachKelolaPenggunaListeners();
+                if (state.currentPage === 'kelola-pengguna') attachAdminKelolaPenggunaListeners();
+                if (state.currentPage === 'kelola-materi') attachAdminKelolaMateriListeners();
             }
         }
         
         // --- LOGIN & LOGOUT ---
-        function LoginPage() {
-            return `
-            <div class="min-h-screen bg-emerald-800 flex items-center justify-center p-4">
-                <div class="w-full max-w-md">
-                     <div class="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
-                         <div class="flex flex-col items-center text-center mb-8">
-                            <i data-lucide="leaf" class="w-16 h-16 text-emerald-600 mb-4"></i>
-                            <h1 class="text-3xl font-bold text-emerald-900">Selamat Datang di SolusiBK</h1>
-                        </div>
-                        <form id="login-form" class="space-y-6">
-                             <div>
-                                <label for="userId" class="text-sm font-medium text-gray-700">ID Pengguna</label>
-                                <input type="text" id="userId" class="w-full mt-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="">
-                            </div>
-                            <div>
-                                <label for="password" class="text-sm font-medium text-gray-700">Password</label>
-                                <input type="password" id="password" class="w-full mt-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="">
-                            </div>
-                            <p id="login-error" class="text-red-500 text-sm text-center hidden">ID Pengguna atau Password salah.</p>
-                            <button type="submit" class="w-full font-semibold py-3 rounded-lg shadow-lg active:scale-95 login-button-theme">Masuk</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            `;
-        }
-
-        function attachLoginListener() {
-            document.getElementById('login-form')?.addEventListener('submit', handleLogin);
-        }
-
-        function handleLogin(event) {
+        function LoginPage() { return `<div class="min-h-screen bg-emerald-800 flex items-center justify-center p-4"><div class="w-full max-w-md"><div class="bg-white rounded-2xl shadow-2xl p-8 md:p-12"><div class="flex flex-col items-center text-center mb-8"><i data-lucide="leaf" class="w-16 h-16 text-emerald-600 mb-4"></i><h1 class="text-3xl font-bold text-emerald-900">Selamat Datang di SolusiBK</h1></div><form id="login-form" class="space-y-6"><div><label for="email" class="text-sm font-medium text-gray-700">Email</label><input type="email" id="email" class="w-full mt-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="contoh: admin@solusibk.com" required></div><div><label for="password" class="text-sm font-medium text-gray-700">Password</label><input type="password" id="password" class="w-full mt-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="••••••••" required></div><p id="login-error" class="text-red-500 text-sm text-center hidden"></p><button type="submit" class="w-full font-semibold py-3 rounded-lg shadow-lg active:scale-95 login-button-theme">Masuk</button></form></div></div></div>`; }
+        function attachLoginListener() { document.getElementById('login-form')?.addEventListener('submit', handleLogin); }
+        async function handleLogin(event) {
             event.preventDefault();
-            const userId = document.getElementById('userId').value;
+            const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const user = db.users.find(u => u.id === userId && u.password === password);
-            if (user) {
-                state.currentUser = user;
-                state.currentPage = 'dashboard';
-                render();
-            } else {
-                const errorEl = document.getElementById('login-error');
+            const errorEl = document.getElementById('login-error');
+            const button = event.target.querySelector('button');
+            button.disabled = true;
+            button.innerHTML = '<i data-lucide="loader-2" class="animate-spin w-5 h-5 mx-auto"></i>';
+            lucide.createIcons();
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                errorEl.textContent = "Email atau password salah.";
                 errorEl.classList.remove('hidden');
+                button.disabled = false;
+                button.textContent = "Masuk";
+            } else if (data.user) {
+                await fetchUserProfile(data.user);
+                render();
+            }
+        }
+        async function handleLogout() {
+            if (state.messageSubscription) {
+                supabase.removeChannel(state.messageSubscription);
+                state.messageSubscription = null;
+            }
+            await supabase.auth.signOut();
+            state.currentUser = null;
+            state.currentPage = 'dashboard';
+            state.activeChatPartner = null;
+            render();
+        }
+        async function fetchUserProfile(user) {
+            const { data, error } = await supabase.from('profiles').select('name, role').eq('id', user.id);
+            if (error) { console.error("Error querying profile:", error); handleLogout(); return; }
+            if (data && data.length > 0) {
+                state.currentUser = { ...user, ...data[0] };
+            } else {
+                 // Pesan error ini sudah ditangani oleh notifikasi di bawah.
+                 // console.error("Error fetching profile: No profile found for user ID:", user.id);
+                 showNotification("Profil pengguna tidak ditemukan. Silakan hubungi admin.", "error");
+                 handleLogout();
             }
         }
 
-        function handleLogout(event) {
-            event.preventDefault();
-            state.currentUser = null;
-            render();
-        }
-
-        // --- HALAMAN & KOMPONEN ---
-        function Header() {
-             return `
-                <header class="flex justify-between items-center py-4 px-6 bg-white border-b-2 border-emerald-100">
-                    <div class="flex items-center">
-                       <h1 class="text-xl font-semibold text-emerald-800">${state.currentUser.name}</h1>
-                    </div>
-                     <div class="flex items-center">
-                        <button id="logout-btn" class="font-semibold text-red-500 hover:text-red-700 transition-all duration-200 hover:scale-105">Logout</button>
-                    </div>
-                </header>
-            `;
-        }
-        
+        // --- KOMPONEN UTAMA ---
+        function Header() { return `<header class="flex justify-between items-center py-4 px-6 bg-white border-b-2 border-emerald-100"><div class="flex items-center"><h1 class="text-xl font-semibold text-emerald-800">${state.currentUser.name} <span class="text-sm font-normal text-gray-500">(${state.currentUser.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())})</span></h1></div><div class="flex items-center"><button id="logout-btn" class="font-semibold text-red-500 hover:text-red-700 transition-all duration-200 hover:scale-105 flex items-center gap-2"><i data-lucide="log-out" class="w-5 h-5"></i>Logout</button></div></header>`; }
         function Sidebar() {
             const role = state.currentUser.role;
             let links = '';
-            
             if (role === 'siswa') {
                 links = `
                     <a href="#" data-page="dashboard" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'dashboard' ? 'sidebar-link-active' : ''}"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard</a>
-                    <h4 class="px-4 pt-4 pb-2 text-xs font-semibold text-emerald-300 uppercase tracking-wider">Konseling</h4>
                     <a href="#" data-page="janji-temu" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'janji-temu' ? 'sidebar-link-active' : ''}"><i data-lucide="calendar-plus" class="w-5 h-5 mr-3"></i>Buat Janji Temu</a>
-                    <a href="#" data-page="chat" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'chat' ? 'sidebar-link-active' : ''}"><i data-lucide="message-square" class="w-5 h-5 mr-3"></i>Chat Privat</a>
-                    <a href="#" data-page="materi" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'materi' ? 'sidebar-link-active' : ''}"><i data-lucide="book-open" class="w-5 h-5 mr-3"></i>Materi Motivasi</a>
-                    <a href="#" data-page="pantau-diri" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'pantau-diri' ? 'sidebar-link-active' : ''}"><i data-lucide="eye" class="w-5 h-5 mr-3"></i>Laporan Perilaku</a>
+                    <a href="#" data-page="materi-bk" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'materi-bk' ? 'sidebar-link-active' : ''}"><i data-lucide="book-open" class="w-5 h-5 mr-3"></i>Materi BK</a>
+                    <a href="#" data-page="chat-konseling" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'chat-konseling' ? 'sidebar-link-active' : ''}"><i data-lucide="message-square" class="w-5 h-5 mr-3"></i>Chat Konseling</a>
                 `;
-                if (state.currentUser.isOsis) {
-                    links += `
-                        <h4 class="px-4 pt-4 pb-2 text-xs font-semibold text-emerald-300 uppercase tracking-wider">OSIS</h4>
-                        <a href="#" data-page="proposal" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'proposal' ? 'sidebar-link-active' : ''}"><i data-lucide="file-text" class="w-5 h-5 mr-3"></i>Proposal Kegiatan</a>
-                        <a href="#" data-page="keuangan" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'keuangan' ? 'sidebar-link-active' : ''}"><i data-lucide="dollar-sign" class="w-5 h-5 mr-3"></i>Laporan Keuangan</a>
-                        <a href="#" data-page="forum" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'forum' ? 'sidebar-link-active' : ''}"><i data-lucide="users" class="w-5 h-5 mr-3"></i>Forum OSIS</a>
-                    `;
-                }
             } else if (role === 'guru_bk') {
-                links = `
+                 links = `
                     <a href="#" data-page="dashboard" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'dashboard' ? 'sidebar-link-active' : ''}"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard</a>
                     <a href="#" data-page="janji-temu" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'janji-temu' ? 'sidebar-link-active' : ''}"><i data-lucide="calendar-check" class="w-5 h-5 mr-3"></i>Kelola Janji Temu</a>
-                    <a href="#" data-page="chat" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'chat' ? 'sidebar-link-active' : ''}"><i data-lucide="message-square" class="w-5 h-5 mr-3"></i>Chat Siswa</a>
-                    <a href="#" data-page="materi" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'materi' ? 'sidebar-link-active' : ''}"><i data-lucide="edit" class="w-5 h-5 mr-3"></i>Kelola Materi</a>
-                `;
-            } else if (role === 'osis') {
-                links = `
-                     <a href="#" data-page="dashboard" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'dashboard' ? 'sidebar-link-active' : ''}"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard</a>
-                     <a href="#" data-page="proposal" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'proposal' ? 'sidebar-link-active' : ''}"><i data-lucide="file-text" class="w-5 h-5 mr-3"></i>Proposal Kegiatan</a>
-                     <a href="#" data-page="keuangan" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'keuangan' ? 'sidebar-link-active' : ''}"><i data-lucide="dollar-sign" class="w-5 h-5 mr-3"></i>Laporan Keuangan</a>
-                     <a href="#" data-page="forum" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'forum' ? 'sidebar-link-active' : ''}"><i data-lucide="users" class="w-5 h-5 mr-3"></i>Forum OSIS</a>
-                `;
-            } else if (role === 'pembina') {
-                 links = `
-                     <a href="#" data-page="dashboard" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'dashboard' ? 'sidebar-link-active' : ''}"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard</a>
-                     <a href="#" data-page="proposal" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'proposal' ? 'sidebar-link-active' : ''}"><i data-lucide="file-check" class="w-5 h-5 mr-3"></i>Persetujuan Proposal</a>
-                     <a href="#" data-page="keuangan" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'keuangan' ? 'sidebar-link-active' : ''}"><i data-lucide="trending-up" class="w-5 h-5 mr-3"></i>Monitoring Keuangan</a>
-                `;
-            } else if (role === 'guru_mapel') {
-                 links = `
-                    <a href="#" data-page="dashboard" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'dashboard' ? 'sidebar-link-active' : ''}"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard</a>
-                    <a href="#" data-page="lapor-perilaku" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'lapor-perilaku' ? 'sidebar-link-active' : ''}"><i data-lucide="clipboard-edit" class="w-5 h-5 mr-3"></i>Lapor Perilaku Siswa</a>
-                    <a href="#" data-page="pekerjaan-siswa" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'pekerjaan-siswa' ? 'sidebar-link-active' : ''}"><i data-lucide="book-check" class="w-5 h-5 mr-3"></i>Pekerjaan Siswa</a>
+                    <a href="#" data-page="chat-siswa" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'chat-siswa' ? 'sidebar-link-active' : ''}"><i data-lucide="message-square" class="w-5 h-5 mr-3"></i>Chat Siswa</a>
                 `;
             } else if (role === 'admin') {
                  links = `
-                    <a href="#" data-page="dashboard" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'dashboard' ? 'sidebar-link-active' : ''}"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard Admin</a>
-                    <a href="#" data-page="kelola-pengguna" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'kelola-pengguna' ? 'sidebar-link-active' : ''}"><i data-lucide="users-2" class="w-5 h-5 mr-3"></i>Kelola Pengguna</a>
+                    <a href="#" data-page="dashboard" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'dashboard' ? 'sidebar-link-active' : ''}"><i data-lucide="shield" class="w-5 h-5 mr-3"></i>Dashboard Admin</a>
+                    <a href="#" data-page="kelola-pengguna" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'kelola-pengguna' ? 'sidebar-link-active' : ''}"><i data-lucide="users" class="w-5 h-5 mr-3"></i>Kelola Pengguna</a>
+                    <a href="#" data-page="kelola-materi" class="sidebar-link flex items-center px-4 py-2.5 rounded-lg ${state.currentPage === 'kelola-materi' ? 'sidebar-link-active' : ''}"><i data-lucide="book-marked" class="w-5 h-5 mr-3"></i>Kelola Materi BK</a>
                 `;
             }
-
-            return `
-                <aside class="w-64 flex-shrink-0 bg-emerald-800 text-white flex flex-col">
-                    <div class="h-20 flex items-center justify-center bg-emerald-900">
-                        <i data-lucide="leaf" class="w-10 h-10 mr-2 text-emerald-300"></i>
-                        <h1 class="text-2xl font-bold tracking-wider">SolusiBK</h1>
-                    </div>
-                    <nav class="flex-1 px-4 py-4 space-y-1">
-                        ${links}
-                    </nav>
-                </aside>
-            `;
+            return `<aside class="w-64 flex-shrink-0 bg-emerald-800 text-white flex flex-col"><div class="h-20 flex items-center justify-center bg-emerald-900"><i data-lucide="leaf" class="w-10 h-10 mr-2 text-emerald-300"></i><h1 class="text-2xl font-bold tracking-wider">SolusiBK</h1></div><nav class="flex-1 px-4 py-4 space-y-1">${links}</nav></aside>`;
         }
         
         // --- DASHBOARDS ---
-        function SiswaDashboard() {
-            const myAppointments = db.appointments.filter(a => a.studentId === state.currentUser.id);
-            const pendingAppointments = myAppointments.filter(a => a.status === 'Menunggu').length;
-            const myReports = db.behaviorReports.filter(r => r.studentId === state.currentUser.id).length;
-            const newArticles = db.articles.length;
+        async function SiswaDashboard() { /* ... unchanged ... */ return `<h3 class="text-3xl font-semibold text-emerald-900 mb-6">Selamat Datang, ${state.currentUser.name}!</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"><div class="bg-white p-6 rounded-xl shadow-lg flex items-center"><i data-lucide="calendar-check" class="w-12 h-12 text-emerald-500 mr-4"></i><div><p class="text-gray-500">Total Janji Temu Anda</p><p class="text-2xl font-bold">${(await supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('student_id', state.currentUser.id)).count || 0}</p></div></div></div>`; }
+        async function GuruBKDashboard() { /* ... unchanged ... */ return `<h3 class="text-3xl font-semibold text-emerald-900 mb-6">Selamat Datang, ${state.currentUser.name}!</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="bg-white p-6 rounded-xl shadow-lg flex items-center"><i data-lucide="calendar-clock" class="w-12 h-12 text-amber-500 mr-4"></i><div><p class="text-gray-500">Janji Temu Menunggu</p><p class="text-2xl font-bold">${(await supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('status', 'Menunggu')).count || 0}</p></div></div></div>`;}
+        async function AdminDashboard() { /* ... unchanged ... */ const { data: users, error: userError } = await supabase.from('profiles').select('role', { count: 'exact' }); const totalUsers = users ? users.length : 0; const totalSiswa = users ? users.filter(u => u.role === 'siswa').length : 0; const totalGuru = users ? users.filter(u => u.role.includes('guru')).length : 0; return `<h3 class="text-3xl font-semibold text-emerald-900 mb-6">Dashboard Admin</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><div class="bg-white p-6 rounded-xl shadow-lg flex items-center"><i data-lucide="users" class="w-12 h-12 text-emerald-500 mr-4"></i><div><p class="text-gray-500">Total Pengguna</p><p class="text-2xl font-bold">${totalUsers}</p></div></div><div class="bg-white p-6 rounded-xl shadow-lg flex items-center"><i data-lucide="graduation-cap" class="w-12 h-12 text-emerald-500 mr-4"></i><div><p class="text-gray-500">Jumlah Siswa</p><p class="text-2xl font-bold">${totalSiswa}</p></div></div><div class="bg-white p-6 rounded-xl shadow-lg flex items-center"><i data-lucide="briefcase" class="w-12 h-12 text-emerald-500 mr-4"></i><div><p class="text-gray-500">Jumlah Guru & Staf</p><p class="text-2xl font-bold">${totalGuru}</p></div></div></div>`;}
 
-            let osisCards = '';
-            if (state.currentUser.isOsis) {
-                const pendingProposals = db.proposals.filter(p => p.status === 'Menunggu').length;
-                const totalBalance = db.finances.reduce((acc, curr) => curr.type === 'Pemasukan' ? acc + curr.amount : acc - curr.amount, 0);
-                osisCards = `
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Proposal OSIS Menunggu</h4>
-                        <p class="text-4xl font-bold text-purple-600 mt-2">${pendingProposals}</p>
-                        <p class="text-gray-500">Proposal yang butuh persetujuan.</p>
-                    </div>
-                     <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Sisa Kas OSIS</h4>
-                        <p class="text-4xl font-bold text-indigo-600 mt-2">Rp ${totalBalance.toLocaleString('id-ID')}</p>
-                        <p class="text-gray-500">Total saldo keuangan saat ini.</p>
-                    </div>
-                `;
-            }
+        // --- FITUR JANJI TEMU (UNCHANGED) ---
+        async function SiswaJanjiTemu() { /* ... unchanged ... */ const { data: myAppointments, error: aptError } = await supabase.from('appointments').select(`*, counselor:profiles!counselor_id(name)`).eq('student_id', state.currentUser.id).order('created_at', { ascending: false }); const { data: counselors, error: counselorError } = await supabase.from('profiles').select('id, name').eq('role', 'guru_bk'); return `<h3 class="text-3xl font-semibold text-emerald-900 mb-6">Buat Janji Temu Konseling</h3><div class="grid grid-cols-1 lg:grid-cols-3 gap-6"><div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg"><h4 class="text-xl font-semibold text-emerald-800 mb-4">Formulir Janji Temu</h4><form id="janji-temu-form" class="space-y-4"><div><label class="block text-gray-700 text-sm font-medium">Pilih Guru BK</label><select id="counselor" class="w-full mt-1 p-2 border rounded-lg">${counselors.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div><label class="block text-gray-700 text-sm font-medium">Tanggal</label><input type="date" id="date" class="w-full mt-1 p-2 border rounded-lg" required></div><div><label class="block text-gray-700 text-sm font-medium">Waktu</label><input type="time" id="time" class="w-full mt-1 p-2 border rounded-lg" required></div><div><label class="block text-gray-700 text-sm font-medium">Topik Singkat</label><textarea id="topic" rows="3" class="w-full mt-1 p-2 border rounded-lg" required placeholder="Contoh: Kesulitan mengatur waktu belajar"></textarea></div><button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Ajukan Janji Temu</button></form></div><div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg"><h4 class="text-xl font-semibold text-emerald-800 mb-4">Riwayat Janji Temu Anda</h4><div class="space-y-3">${myAppointments && myAppointments.length > 0 ? myAppointments.map(apt => { const statusClass = apt.status === 'Disetujui' ? 'bg-green-100 text-green-700' : apt.status === 'Menunggu' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'; return `<div class="p-4 border rounded-lg bg-emerald-50 flex justify-between items-start"><div><p class="font-semibold">${apt.topic}</p><p class="text-sm text-gray-500">dengan ${apt.counselor.name} pada ${new Date(apt.date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} pukul ${apt.time}</p></div><span class="text-xs font-bold px-2 py-1 rounded-full ${statusClass}">${apt.status}</span></div>`}).join('') : '<p class="text-gray-500">Belum ada riwayat janji temu.</p>'}</div></div></div>`;}
+        function attachSiswaJanjiTemuListeners() { /* ... unchanged ... */ document.getElementById('janji-temu-form')?.addEventListener('submit', async e => { e.preventDefault(); const newAppointment = { student_id: state.currentUser.id, counselor_id: document.getElementById('counselor').value, date: document.getElementById('date').value, time: document.getElementById('time').value, topic: document.getElementById('topic').value, status: 'Menunggu' }; const { error } = await supabase.from('appointments').insert(newAppointment); if (error) { showNotification("Gagal membuat janji temu: " + error.message, 'error'); } else { showNotification("Janji temu berhasil diajukan!", 'success'); render(); } }); }
+        
+        async function GuruBKJanjiTemu() {
+            const { data: myAppointments, error } = await supabase.from('appointments').select('*, student:profiles(name)').order('created_at', { ascending: false });
+            // Filter out appointments where the student has been deleted (student is null)
+            const validAppointments = myAppointments ? myAppointments.filter(apt => apt.student) : [];
             
-            return `
-                <h3 class="text-3xl font-semibold text-emerald-900">Dashboard Siswa</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-emerald-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Janji Temu Menunggu</h4>
-                        <p class="text-4xl font-bold text-emerald-600 mt-2">${pendingAppointments}</p>
-                        <p class="text-gray-500">Total janji temu yang menunggu persetujuan.</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-lime-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Materi Motivasi</h4>
-                        <p class="text-4xl font-bold text-lime-600 mt-2">${newArticles}</p>
-                        <p class="text-gray-500">Artikel baru untuk dibaca.</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-yellow-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Laporan Perilaku</h4>
-                        <p class="text-4xl font-bold text-yellow-600 mt-2">${myReports}</p>
-                        <p class="text-gray-500">Laporan dari guru mata pelajaran.</p>
-                    </div>
-                    ${osisCards}
-                </div>
-            `;
+            return `<h3 class="text-3xl font-semibold text-emerald-900 mb-6">Kelola Janji Temu</h3><div class="bg-white p-6 rounded-xl shadow-lg"><div class="space-y-4">${validAppointments && validAppointments.length > 0 ? validAppointments.map(apt => `<div class="flex items-center justify-between p-4 border rounded-lg bg-emerald-50"><div><p class="font-bold text-lg">${apt.student.name}</p><p class="text-gray-600">${apt.topic}</p><p class="text-sm text-gray-500">${new Date(apt.date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} - ${apt.time}</p></div>${apt.status === 'Menunggu' ? `<div class="flex space-x-2"><button data-id="${apt.id}" class="approve-btn bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 shadow-md btn-glow-green">Setujui</button><button data-id="${apt.id}" class="reject-btn bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 shadow-md btn-glow-red">Tolak</button></div>` : `<p class="font-medium ${apt.status === 'Disetujui' ? 'text-green-600' : 'text-red-600'}">${apt.status}</p>`}</div>`).join('') : '<p class="text-gray-500">Belum ada janji temu yang diajukan.</p>'}</div></div>`;
         }
-        function GuruBKDashboard() {
-            const pendingAppointments = db.appointments.filter(a => a.counselorId === state.currentUser.id && a.status === 'Menunggu').length;
-             return `
-                <h3 class="text-3xl font-semibold text-emerald-900">Dashboard Guru BK</h3>
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-emerald-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Janji Temu Menunggu</h4>
-                        <p class="text-4xl font-bold text-emerald-600 mt-2">${pendingAppointments}</p>
-                        <p class="text-gray-500">Janji temu yang perlu dikonfirmasi.</p>
-                    </div>
-                </div>
-            `;
-        }
-        function OsisDashboard() {
-            const pendingProposals = db.proposals.filter(p => p.status === 'Menunggu').length;
-            const totalBalance = db.finances.reduce((acc, curr) => curr.type === 'Pemasukan' ? acc + curr.amount : acc - curr.amount, 0);
-            return `
-                <h3 class="text-3xl font-semibold text-emerald-900">Dashboard OSIS</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Proposal Menunggu</h4>
-                        <p class="text-4xl font-bold text-purple-600 mt-2">${pendingProposals}</p>
-                        <p class="text-gray-500">Proposal yang butuh persetujuan.</p>
-                    </div>
-                     <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Sisa Kas OSIS</h4>
-                        <p class="text-4xl font-bold text-indigo-600 mt-2">Rp ${totalBalance.toLocaleString('id-ID')}</p>
-                        <p class="text-gray-500">Total saldo keuangan saat ini.</p>
-                    </div>
-                </div>
-            `;
-        }
-        function PembinaDashboard() {
-            const pendingProposals = db.proposals.filter(p => p.status === 'Menunggu').length;
-            const totalBalance = db.finances.reduce((acc, curr) => curr.type === 'Pemasukan' ? acc + curr.amount : acc - curr.amount, 0);
-             return `
-                <h3 class="text-3xl font-semibold text-emerald-900">Dashboard Pembina</h3>
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Proposal Menunggu</h4>
-                        <p class="text-4xl font-bold text-purple-600 mt-2">${pendingProposals}</p>
-                        <p class="text-gray-500">Proposal yang butuh persetujuan Anda.</p>
-                    </div>
-                     <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Sisa Kas OSIS</h4>
-                        <p class="text-4xl font-bold text-indigo-600 mt-2">Rp ${totalBalance.toLocaleString('id-ID')}</p>
-                        <p class="text-gray-500">Total saldo keuangan saat ini.</p>
-                    </div>
-                </div>
-            `;
-        }
-        function GuruMapelDashboard() { 
-            const reportsCount = db.behaviorReports.filter(r => r.teacherId === state.currentUser.id).length;
-            const tasksCount = db.studentTasks.filter(t => t.teacherId === state.currentUser.id).length;
-            return `
-                <h3 class="text-3xl font-semibold text-emerald-900">Dashboard Guru Mata Pelajaran</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-emerald-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Laporan Perilaku Terkirim</h4>
-                        <p class="text-4xl font-bold text-emerald-600 mt-2">${reportsCount}</p>
-                        <p class="text-gray-500">Total laporan yang telah Anda buat.</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Pekerjaan Siswa Dicatat</h4>
-                        <p class="text-4xl font-bold text-purple-600 mt-2">${tasksCount}</p>
-                        <p class="text-gray-500">Total pekerjaan/tugas yang dicatat.</p>
-                    </div>
-                </div>
-            `;
-        }
-        function AdminDashboard() {
-            const totalUsers = db.users.length;
-            const totalStudents = db.users.filter(u => u.role === 'siswa').length;
-            const totalStaff = db.users.filter(u => u.role !== 'siswa' && u.role !== 'admin').length;
-            const totalAppointments = db.appointments.length;
-            return `
-                <h3 class="text-3xl font-semibold text-emerald-900">Dashboard Admin</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-red-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Total Pengguna</h4>
-                        <p class="text-4xl font-bold text-red-600 mt-2">${totalUsers}</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Total Siswa</h4>
-                        <p class="text-4xl font-bold text-green-600 mt-2">${totalStudents}</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-yellow-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Total Staf</h4>
-                        <p class="text-4xl font-bold text-yellow-600 mt-2">${totalStaff}</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-emerald-500">
-                        <h4 class="text-lg font-semibold text-gray-700">Total Janji Temu</h4>
-                        <p class="text-4xl font-bold text-emerald-600 mt-2">${totalAppointments}</p>
-                    </div>
-                </div>
-            `;
-        }
-       
-        // --- HALAMAN FITUR ---
-        function SiswaJanjiTemu() {
-            const myAppointments = db.appointments.filter(a => a.studentId === state.currentUser.id).sort((a,b) => b.id - a.id);
-            const getStatusClass = (status) => {
-                if (status === 'Disetujui') return 'bg-green-100 text-green-800';
-                if (status === 'Ditolak') return 'bg-red-100 text-red-800';
-                return 'bg-yellow-100 text-yellow-800';
-            };
+        function attachGuruBKJanjiTemuListeners() { /* ... unchanged ... */ document.querySelectorAll('.approve-btn, .reject-btn').forEach(btn => { btn.addEventListener('click', async e => { const id = parseInt(e.currentTarget.getAttribute('data-id')); const newStatus = e.currentTarget.classList.contains('approve-btn') ? 'Disetujui' : 'Ditolak'; await supabase.from('appointments').update({ status: newStatus }).eq('id', id); showNotification(`Janji temu telah ${newStatus.toLowerCase()}.`, 'success'); render(); }); }); }
+        
+        // --- FITUR KELOLA PENGGUNA (UNCHANGED) ---
+        async function AdminKelolaPengguna() { /* ... unchanged ... */ const { data: users, error } = await supabase.from('profiles').select('*').order('name', { ascending: true }); const roleMapping = { 'siswa': 'Siswa', 'guru_bk': 'Guru BK', 'admin': 'Admin' }; return `<div class="flex justify-between items-center mb-6"><h3 class="text-3xl font-semibold text-emerald-900">Kelola Pengguna</h3><button id="add-user-btn" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 flex items-center shadow-md btn-glow-green"><i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>Tambah Pengguna</button></div><div class="bg-white p-6 rounded-xl shadow-lg"><div class="overflow-x-auto"><table class="w-full"><thead><tr class="border-b-2"><th class="py-2 px-4 text-left">Nama</th><th class="py-2 px-4 text-left">ID Pengguna (UUID)</th><th class="py-2 px-4 text-left">Peran</th><th class="py-2 px-4 text-center">Aksi</th></tr></thead><tbody>${users ? users.map(user => `<tr class="border-b hover:bg-emerald-50"><td class="py-3 px-4">${user.name}</td><td class="py-3 px-4 text-sm text-gray-500 font-mono">${user.id}</td><td class="py-3 px-4">${roleMapping[user.role] || user.role}</td><td class="py-3 px-4 text-center">${user.id !== state.currentUser.id ? `<button data-id="${user.id}" data-name="${user.name}" class="delete-user-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : '<span class="text-xs text-gray-400">Anda</span>'}</td></tr>`).join('') : ''}</tbody></table></div></div>`;}
+        function attachAdminKelolaPenggunaListeners() { /* ... unchanged ... */ document.getElementById('add-user-btn')?.addEventListener('click', () => showAddUserModal()); document.querySelectorAll('.delete-user-btn').forEach(btn => { btn.addEventListener('click', e => { const id = e.currentTarget.getAttribute('data-id'); const name = e.currentTarget.getAttribute('data-name'); showDeleteUserModal(id, name); }); }); }
+
+        // --- FITUR MATERI BK ---
+        /*
+            PENTING: Buat tabel baru di Supabase bernama 'materials'
+            dengan kolom-kolom berikut:
+            - id (int8, is identity, is primary key)
+            - created_at (timestamptz, default: now())
+            - title (text)
+            - content (text)
+        */
+        async function SiswaMateriBk() {
+            const { data: materials, error } = await supabase.from('materials').select('*').order('created_at', { ascending: false });
+            if (error) { return `<p class="text-red-500">Gagal memuat materi.</p>`; }
 
             return `
-                <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Buat Janji Temu</h3>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg h-fit">
-                        <h4 class="text-xl font-semibold text-emerald-800 mb-4">Form Janji Temu</h4>
-                        <form id="form-janji-temu" class="space-y-4">
-                            <div>
-                                <label class="block text-gray-700 text-sm font-medium">Pilih Guru BK</label>
-                                <select id="counselor" class="w-full mt-1 p-2 border rounded-lg">
-                                    ${db.users.filter(u => u.role === 'guru_bk').map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 text-sm font-medium">Tanggal</label>
-                                <input id="date" type="date" class="w-full mt-1 p-2 border rounded-lg">
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 text-sm font-medium">Waktu</label>
-                                <input id="time" type="time" class="w-full mt-1 p-2 border rounded-lg">
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 text-sm font-medium">Topik Singkat</label>
-                                <textarea id="topic" rows="3" class="w-full mt-1 p-2 border rounded-lg" placeholder="Contoh: Kesulitan mengatur waktu belajar"></textarea>
-                            </div>
-                            <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Ajukan Janji Temu</button>
-                        </form>
-                    </div>
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-                        <h4 class="text-xl font-semibold text-emerald-800 mb-4">Riwayat Janji Temu Anda</h4>
-                        <div class="space-y-4">
-                            ${myAppointments.length > 0 ? myAppointments.map(apt => `
-                                <div class="border p-4 rounded-lg">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <p class="font-semibold">${apt.topic}</p>
-                                            <p class="text-sm text-gray-600">dengan ${db.users.find(u => u.id === apt.counselorId).name}</p>
-                                            <p class="text-sm text-gray-500">${apt.date} pukul ${apt.time}</p>
-                                        </div>
-                                        <span class="text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusClass(apt.status)}">${apt.status}</span>
-                                    </div>
-                                </div>
-                            `).join('') : '<p class="text-gray-500">Anda belum memiliki riwayat janji temu.</p>'}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        function SiswaChat() {
-             const counselors = db.users.filter(u => u.role === 'guru_bk');
-             const activeCounselor = db.users.find(u => u.id === state.activeChatUserId);
-             const chatKey = activeCounselor ? `${state.currentUser.id}-${activeCounselor.id}` : null;
-             const messages = chatKey && db.chats[chatKey] ? db.chats[chatKey] : [];
-
-             return `
-                <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Chat Privat</h3>
-                <div class="bg-white rounded-xl shadow-lg h-[600px] flex">
-                    <div class="w-1/3 border-r flex flex-col">
-                        <div class="p-4 border-b font-semibold text-emerald-800">Guru BK</div>
-                        <ul class="overflow-y-auto flex-1">
-                            ${counselors.map(c => `
-                                <li data-id="${c.id}" class="chat-contact p-4 cursor-pointer hover:bg-emerald-50 border-b ${state.activeChatUserId === c.id ? 'bg-emerald-100' : ''}">
-                                    ${c.name}
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                    <div class="w-2/3 flex flex-col">
-                        ${activeCounselor ? `
-                            <div class="p-4 border-b flex items-center">
-                                <h4 class="font-semibold text-emerald-800">${activeCounselor.name}</h4>
-                            </div>
-                            <div id="chat-window" class="flex-1 p-4 overflow-y-auto bg-emerald-50 space-y-4">
-                                ${messages.map(msg => {
-                                    const isSender = msg.sender === state.currentUser.id;
-                                    return `
-                                    <div class="flex ${isSender ? 'justify-end' : 'justify-start'}">
-                                        <div class="${isSender ? 'bg-emerald-500 text-white' : 'bg-white'} p-3 rounded-lg max-w-xs">
-                                            ${msg.text}
-                                        </div>
-                                    </div>
-                                    `
-                                }).join('')}
-                            </div>
-                            <div class="p-4 border-t bg-white">
-                                 <form id="chat-form" class="flex space-x-2">
-                                     <input type="text" id="chat-input" class="w-full p-2 border rounded-lg" placeholder="Ketik pesan...">
-                                     <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Kirim</button>
-                                 </form>
-                            </div>
-                        ` : `
-                            <div class="flex-1 flex items-center justify-center">
-                                <p class="text-gray-500">Pilih guru untuk memulai percakapan.</p>
-                            </div>
-                        `}
-                    </div>
-                </div>
-             `;
-        }
-        function GuruBKJanjiTemu() {
-            const allAppointments = db.appointments.filter(a => a.counselorId === state.currentUser.id).sort((a,b) => b.id - a.id);
-            return `
-                 <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Kelola Janji Temu</h3>
-                 <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <div class="space-y-4">
-                         ${allAppointments.map(apt => `
-                            <div class="border p-4 rounded-lg flex justify-between items-center">
-                                <div>
-                                    <p class="font-semibold">${db.users.find(u => u.id === apt.studentId).name}</p>
-                                    <p class="text-gray-700">"${apt.topic}"</p>
-                                    <p class="text-sm text-gray-500">${apt.date} - ${apt.time}</p>
-                                </div>
-                                ${apt.status === 'Menunggu' ? `
-                                <div class="flex space-x-2">
-                                    <button data-id="${apt.id}" class="approve-btn bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Setujui</button>
-                                    <button data-id="${apt.id}" class="reject-btn bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-red">Tolak</button>
-                                </div>
-                                ` : `<p class="font-medium ${apt.status === 'Disetujui' ? 'text-green-600' : 'text-red-600'}">${apt.status}</p>`}
-                            </div>
-                         `).join('')}
-                    </div>
-                 </div>
-            `;
-        }
-        function GuruBKChat() {
-            const studentChats = Object.keys(db.chats).map(key => {
-                const [studentId, counselorId] = key.split('-');
-                if (counselorId === state.currentUser.id) {
-                    return db.users.find(u => u.id === studentId);
-                }
-                return null;
-            }).filter(Boolean);
-
-             const activeStudent = db.users.find(u => u.id === state.activeChatUserId);
-             const chatKey = activeStudent ? `${activeStudent.id}-${state.currentUser.id}` : null;
-             const messages = chatKey && db.chats[chatKey] ? db.chats[chatKey] : [];
-
-            return `
-                <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Chat Siswa</h3>
-                 <div class="bg-white rounded-xl shadow-lg h-[600px] flex">
-                    <div class="w-1/3 border-r flex flex-col">
-                        <div class="p-4 border-b font-semibold text-emerald-800">Daftar Percakapan</div>
-                        <ul class="overflow-y-auto flex-1">
-                            ${studentChats.map(s => `
-                                <li data-id="${s.id}" class="chat-contact p-4 cursor-pointer hover:bg-emerald-50 border-b ${state.activeChatUserId === s.id ? 'bg-emerald-100' : ''}">
-                                    ${s.name}
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                     <div class="w-2/3 flex flex-col">
-                        ${activeStudent ? `
-                            <div class="p-4 border-b flex items-center">
-                                <h4 class="font-semibold text-emerald-800">${activeStudent.name}</h4>
-                            </div>
-                            <div id="chat-window" class="flex-1 p-4 overflow-y-auto bg-emerald-50 space-y-4">
-                                ${messages.map(msg => {
-                                    const isSender = msg.sender === state.currentUser.id;
-                                    return `
-                                    <div class="flex ${isSender ? 'justify-end' : 'justify-start'}">
-                                        <div class="${isSender ? 'bg-emerald-500 text-white' : 'bg-white'} p-3 rounded-lg max-w-xs">
-                                            ${msg.text}
-                                        </div>
-                                    </div>
-                                    `
-                                }).join('')}
-                            </div>
-                            <div class="p-4 border-t bg-white">
-                                 <form id="chat-form" class="flex space-x-2">
-                                     <input type="text" id="chat-input" class="w-full p-2 border rounded-lg" placeholder="Ketik balasan...">
-                                     <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Balas</button>
-                                 </form>
-                            </div>
-                        ` : `
-                            <div class="flex-1 flex items-center justify-center">
-                                <p class="text-gray-500">Pilih percakapan untuk ditampilkan.</p>
-                            </div>
-                        `}
-                    </div>
-                </div>
-            `;
-        }
-        function MateriPage(canEdit = false) {
-            return `
-                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-3xl font-semibold text-emerald-900">Materi Motivasi</h3>
-                    ${canEdit ? '<button id="add-materi-btn" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Tambah Materi Baru</button>' : ''}
-                </div>
+                <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Materi Bimbingan Konseling</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    ${db.articles.map(article => `
-                        <div data-article-id="${article.id}" class="article-card bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 cursor-pointer">
-                             <span class="text-sm font-medium text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">${article.category}</span>
-                             <h4 class="text-xl font-semibold text-gray-800 mt-4 mb-2">${article.title}</h4>
-                             <p class="text-gray-600 text-sm mb-4">${article.content}</p>
-                             <div class="text-xs text-gray-400">
-                                 <span>Oleh: ${article.author}</span> | <span>${article.publishedDate}</span>
-                             </div>
+                    ${materials.length > 0 ? materials.map(m => `
+                        <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
+                            <h4 class="text-xl font-bold text-emerald-800 mb-2">${m.title}</h4>
+                            <p class="text-gray-600 flex-grow">${m.content.substring(0, 100)}...</p>
+                            <button data-id="${m.id}" class="view-material-btn mt-4 text-emerald-600 font-semibold self-start">Baca Selengkapnya →</button>
                         </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-        function OsisProposal(canApprove = false) {
-             const getStatusClass = (status) => {
-                if (status === 'Disetujui') return 'bg-green-100 text-green-800';
-                if (status === 'Ditolak') return 'bg-red-100 text-red-800';
-                return 'bg-yellow-100 text-yellow-800';
-            };
-            return `
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-3xl font-semibold text-emerald-900">Proposal Kegiatan OSIS</h3>
-                    ${!canApprove ? '<button id="add-proposal-btn" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Buat Proposal Baru</button>' : ''}
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                     <div class="space-y-4">
-                         ${db.proposals.map(p => `
-                            <div class="border p-4 rounded-lg">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <p class="font-semibold text-lg">${p.title}</p>
-                                        <p class="text-sm text-gray-600">Penanggung Jawab: ${p.pic}</p>
-                                        <p class="text-sm text-gray-500">Tanggal: ${p.date} | Anggaran: Rp ${p.budget.toLocaleString('id-ID')}</p>
-                                    </div>
-                                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusClass(p.status)}">${p.status}</span>
-                                </div>
-                                <p class="mt-2 text-gray-700">${p.description}</p>
-                                ${canApprove && p.status === 'Menunggu' ? `
-                                <div class="flex space-x-2 mt-2">
-                                    <button data-id="${p.id}" class="approve-proposal-btn bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Setujui</button>
-                                    <button data-id="${p.id}" class="reject-proposal-btn bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-red">Tolak</button>
-                                </div>
-                                ` : ''}
-                            </div>
-                         `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        function OsisKeuangan() {
-            const totalBalance = db.finances.reduce((acc, curr) => curr.type === 'Pemasukan' ? acc + curr.amount : acc - curr.amount, 0);
-            return `
-                 <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Laporan Keuangan OSIS</h3>
-                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                     <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg h-fit">
-                        <h4 class="text-xl font-semibold text-emerald-800 mb-4">Input Transaksi</h4>
-                        <form id="form-keuangan" class="space-y-4">
-                             <div>
-                                <label class="block text-gray-700 text-sm font-medium">Jenis Transaksi</label>
-                                 <select id="type" class="w-full mt-1 p-2 border rounded-lg">
-                                    <option value="Pemasukan">Pemasukan</option>
-                                    <option value="Pengeluaran">Pengeluaran</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 text-sm font-medium">Jumlah (Rp)</label>
-                                <input id="amount" type="number" class="w-full mt-1 p-2 border rounded-lg">
-                            </div>
-                             <div>
-                                <label class="block text-gray-700 text-sm font-medium">Keterangan</label>
-                                <textarea id="description" rows="3" class="w-full mt-1 p-2 border rounded-lg"></textarea>
-                            </div>
-                            <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Simpan</button>
-                        </form>
-                    </div>
-                     <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-                         <div class="flex justify-between items-center mb-4">
-                             <h4 class="text-xl font-semibold text-emerald-800">Riwayat Kas</h4>
-                             <p class="font-bold text-lg">Saldo: Rp ${totalBalance.toLocaleString('id-ID')}</p>
-                         </div>
-                         <div class="overflow-x-auto">
-                            <table class="min-w-full">
-                                <thead>
-                                    <tr class="border-b">
-                                        <th class="py-2 px-4 text-left">Tanggal</th>
-                                        <th class="py-2 px-4 text-left">Keterangan</th>
-                                        <th class="py-2 px-4 text-right">Jumlah</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${db.finances.map(f => `
-                                        <tr class="border-b">
-                                            <td class="py-2 px-4 text-gray-600">${f.date}</td>
-                                            <td class="py-2 px-4">${f.description}</td>
-                                            <td class="py-2 px-4 text-right font-medium ${f.type === 'Pemasukan' ? 'text-green-600' : 'text-red-600'}">
-                                                ${f.type === 'Pemasukan' ? '+' : '-'} Rp ${f.amount.toLocaleString('id-ID')}
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                         </div>
-                    </div>
-                 </div>
-            `;
-        }
-        function OsisForum() {
-             return `
-                 <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Forum Diskusi Internal OSIS</h3>
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <div class="mb-4">
-                        <input type="text" id="new-thread-title" class="w-full p-2 border rounded-lg" placeholder="Judul topik diskusi baru...">
-                        <button id="add-thread-btn" class="bg-emerald-600 text-white px-4 py-2 mt-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Buat Topik</button>
-                    </div>
-                    <div class="space-y-4">
-                        ${db.forum.map(thread => `
-                            <div class="border p-4 rounded-lg">
-                                <p class="font-semibold text-lg">${thread.title}</p>
-                                <p class="text-sm text-gray-500">dimulai oleh ${thread.author}</p>
-                                <div class="mt-2 pl-4 border-l-2">
-                                    ${thread.replies.map(reply => `<p><b>${reply.author}:</b> ${reply.text}</p>`).join('')}
-                                     <form class="mt-2" data-thread-id="${thread.id}">
-                                        <input type="text" class="reply-input w-full p-1 border rounded" placeholder="Tulis balasan...">
-                                    </form>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
+                    `).join('') : '<p class="text-gray-500 col-span-full">Belum ada materi yang tersedia.</p>'}
                 </div>
             `;
         }
 
-        // --- HALAMAN FITUR LAIN ---
-        function LaporPerilakuPage() {
-            return `
-                <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Lapor Perilaku Siswa</h3>
-                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg h-fit">
-                        <h4 class="text-xl font-semibold text-emerald-800 mb-4">Form Laporan</h4>
-                        <form id="form-lapor-perilaku" class="space-y-4">
-                            <div>
-                                <label class="block text-gray-700 text-sm font-medium">Pilih Siswa</label>
-                                 <select id="student" class="w-full mt-1 p-2 border rounded-lg">
-                                    ${db.users.filter(u => u.role === 'siswa').map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 text-sm font-medium">Laporan Singkat</label>
-                                <textarea id="report" rows="4" class="w-full mt-1 p-2 border rounded-lg" placeholder="Contoh: Sangat aktif dan antusias di kelas hari ini."></textarea>
-                            </div>
-                            <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Kirim Laporan</button>
-                        </form>
-                    </div>
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-                         <h4 class="text-xl font-semibold text-emerald-800 mb-4">Riwayat Laporan Anda</h4>
-                         ${db.behaviorReports.filter(r => r.teacherId === state.currentUser.id).map(report => `
-                            <div class="border-b pb-2 mb-2">
-                                <p class="font-semibold">${db.users.find(u => u.id === report.studentId).name}</p>
-                                <p class="text-gray-700">"${report.report}"</p>
-                                <p class="text-xs text-gray-500">${report.date}</p>
-                            </div>
-                         `).join('')}
-                    </div>
-                 </div>
-            `;
+        function attachSiswaMateriBkListeners() {
+            document.querySelectorAll('.view-material-btn').forEach(btn => {
+                btn.addEventListener('click', async e => {
+                    const materialId = e.currentTarget.dataset.id;
+                    const { data: material, error } = await supabase.from('materials').select('*').eq('id', materialId).single();
+                    if (material) {
+                        showViewMaterialModal(material);
+                    }
+                });
+            });
         }
         
-        function PekerjaanSiswaPage() {
+        async function AdminKelolaMateri() {
+            const { data: materials, error } = await supabase.from('materials').select('*').order('created_at', { ascending: false });
              return `
-                <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Catat Pekerjaan Siswa</h3>
-                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg h-fit">
-                        <h4 class="text-xl font-semibold text-emerald-800 mb-4">Form Catatan</h4>
-                        <form id="form-pekerjaan-siswa" class="space-y-4">
-                            <div>
-                                <label class="block text-gray-700 text-sm font-medium">Pilih Siswa</label>
-                                 <select id="student-task" class="w-full mt-1 p-2 border rounded-lg">
-                                    ${db.users.filter(u => u.role === 'siswa').map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-                                </select>
-                            </div>
-                             <div>
-                                <label class="block text-gray-700 text-sm font-medium">Nama Tugas/Pekerjaan</label>
-                                <input id="task-name" type="text" class="w-full mt-1 p-2 border rounded-lg" placeholder="Contoh: Ulangan Harian 1">
-                            </div>
-                             <div>
-                                <label class="block text-gray-700 text-sm font-medium">Nilai</label>
-                                <input id="task-score" type="number" class="w-full mt-1 p-2 border rounded-lg" placeholder="0-100">
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 text-sm font-medium">Catatan Singkat</label>
-                                <textarea id="task-notes" rows="3" class="w-full mt-1 p-2 border rounded-lg" placeholder="Contoh: Perlu peningkatan di soal esai."></textarea>
-                            </div>
-                            <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Simpan Catatan</button>
-                        </form>
-                    </div>
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-                         <h4 class="text-xl font-semibold text-emerald-800 mb-4">Riwayat Pekerjaan Siswa (Dicatat oleh Anda)</h4>
-                         ${db.studentTasks.filter(r => r.teacherId === state.currentUser.id).map(task => `
-                            <div class="border-b pb-2 mb-2">
-                                <p class="font-semibold">${db.users.find(u => u.id === task.studentId).name} - ${task.task} (Nilai: ${task.score})</p>
-                                <p class="text-gray-700">"${task.notes}"</p>
-                                <p class="text-xs text-gray-500">${task.date}</p>
-                            </div>
-                         `).join('')}
-                    </div>
-                 </div>
-            `;
-        }
-
-        function PantauDiriPage() {
-            const studentId = state.currentUser.id;
-            const student = db.users.find(u => u.id === studentId);
-            if (!student) return `<p>Data siswa tidak ditemukan.</p>`;
-
-            const reports = db.behaviorReports.filter(r => r.studentId === student.id);
-            const tasks = db.studentTasks.filter(t => t.studentId === student.id);
-
-            return `
-                 <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Laporan Perkembangan Diri</h3>
-                 <div class="space-y-8">
-                     <div>
-                        <h4 class="text-xl font-semibold text-emerald-800 mb-4">Laporan Perilaku dari Guru</h4>
-                        <div class="bg-white p-6 rounded-xl shadow-lg space-y-4">
-                            ${reports.length > 0 ? reports.map(r => `
-                                <div class="border-b pb-2">
-                                    <p class="text-gray-700">"${r.report}"</p>
-                                    <p class="text-sm text-gray-500">- ${db.users.find(u => u.id === r.teacherId).name} (${r.date})</p>
-                                </div>
-                            `).join('') : '<p class="text-gray-500">Belum ada laporan perilaku.</p>'}
-                        </div>
-                    </div>
-                     <div>
-                        <h4 class="text-xl font-semibold text-emerald-800 mb-4">Catatan Pekerjaan & Tugas</h4>
-                        <div class="bg-white p-6 rounded-xl shadow-lg space-y-4">
-                             ${tasks.length > 0 ? tasks.map(t => `
-                                <div class="border-b pb-2">
-                                    <p class="font-semibold">${t.task} - Nilai: ${t.score}</p>
-                                    <p class="text-gray-700">Catatan: "${t.notes}"</p>
-                                    <p class="text-sm text-gray-500">- ${db.users.find(u => u.id === t.teacherId).name} (${t.date})</p>
-                                </div>
-                            `).join('') : '<p class="text-gray-500">Belum ada catatan pekerjaan.</p>'}
-                        </div>
-                    </div>
-                 </div>
-            `;
-        }
-        function KelolaPenggunaPage() {
-            const roleMapping = {
-                'siswa': 'Siswa',
-                'guru_bk': 'Guru BK',
-                'guru_mapel': 'Guru Mapel',
-                'osis': 'OSIS',
-                'pembina': 'Pembina',
-                'admin': 'Admin'
-            };
-            return `
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-3xl font-semibold text-emerald-900">Kelola Pengguna</h3>
-                    <button id="add-user-btn" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 flex items-center shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">
-                        <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>Tambah Pengguna
+                    <h3 class="text-3xl font-semibold text-emerald-900">Kelola Materi BK</h3>
+                    <button id="add-material-btn" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 flex items-center shadow-md btn-glow-green">
+                        <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>Tambah Materi
                     </button>
                 </div>
                 <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full">
-                            <thead>
-                                <tr class="border-b">
-                                    <th class="py-2 px-4 text-left">Nama</th>
-                                    <th class="py-2 px-4 text-left">ID Pengguna</th>
-                                    <th class="py-2 px-4 text-left">Peran</th>
-                                    <th class="py-2 px-4 text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${db.users.map(user => `
-                                    <tr class="border-b">
-                                        <td class="py-2 px-4 font-medium">${user.name}</td>
-                                        <td class="py-2 px-4 text-gray-600">${user.id}</td>
-                                        <td class="py-2 px-4 text-gray-600">${roleMapping[user.role] || user.role}</td>
-                                        <td class="py-2 px-4 text-center">
-                                            ${user.role !== 'admin' ? `
-                                            <button data-id="${user.id}" class="delete-user-btn text-red-500 hover:text-red-700 transition-transform hover:scale-125">
-                                                <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                            </button>
-                                            ` : ''}
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+                     <div class="space-y-4">
+                        ${materials && materials.length > 0 ? materials.map(m => `
+                            <div class="flex items-center justify-between p-4 border rounded-lg bg-emerald-50">
+                                <div>
+                                    <p class="font-bold text-lg">${m.title}</p>
+                                    <p class="text-gray-600">${m.content.substring(0, 80)}...</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button data-id="${m.id}" class="edit-material-btn text-blue-500 hover:text-blue-700"><i data-lucide="edit" class="w-5 h-5"></i></button>
+                                    <button data-id="${m.id}" data-title="${m.title}" class="delete-material-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-gray-500">Belum ada materi. Silakan tambahkan.</p>'}
                     </div>
                 </div>
             `;
         }
         
-        // --- MODAL ---
-        function renderModal() {
-             const modalHTML = `
-                <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                         <div class="flex-shrink-0">${state.modal.header}</div>
-                         <div class="flex-shrink-0 overflow-y-auto mt-4 pr-4 -mr-4">${state.modal.content}</div>
-                         <div class="flex-shrink-0 mt-6 text-right">
-                            <button id="close-modal-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-gray">Tutup</button>
-                         </div>
+        function attachAdminKelolaMateriListeners() {
+            document.getElementById('add-material-btn')?.addEventListener('click', () => showAddMaterialModal());
+            document.querySelectorAll('.edit-material-btn').forEach(btn => {
+                btn.addEventListener('click', async e => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    const { data: material } = await supabase.from('materials').select('*').eq('id', id).single();
+                    if(material) showEditMaterialModal(material);
+                });
+            });
+            document.querySelectorAll('.delete-material-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    const title = e.currentTarget.getAttribute('data-title');
+                    showDeleteMaterialModal(id, title);
+                });
+            });
+        }
+
+        // --- FITUR CHAT ---
+        /*
+            PENTING: Buat tabel baru di Supabase bernama 'messages'
+            dengan kolom-kolom berikut:
+            - id (int8, is identity, is primary key)
+            - created_at (timestamptz, default: now())
+            - content (text)
+            - sender_id (uuid, foreign key ke profiles.id)
+            - receiver_id (uuid, foreign key ke profiles.id)
+        */
+        async function SiswaChat() {
+            const { data: counselors, error } = await supabase.from('profiles').select('id, name').eq('role', 'guru_bk');
+            return ChatLayout(counselors, 'Guru BK');
+        }
+        async function GuruBKChat() {
+            const { data: students, error } = await supabase
+                .from('messages')
+                .select('sender:sender_id(id, name)')
+                .eq('receiver_id', state.currentUser.id);
+
+            // Get unique students, filtering out any null senders (deleted users)
+            const uniqueStudents = students 
+                ? [...new Map(
+                    students
+                        .filter(item => item.sender)
+                        .map(item => [item.sender.id, item.sender])
+                  ).values()] 
+                : [];
+            return ChatLayout(uniqueStudents, 'Siswa');
+        }
+        function ChatLayout(users, userRole) {
+            return `
+                <h3 class="text-3xl font-semibold text-emerald-900 mb-6">Chat Konseling</h3>
+                <div class="grid grid-cols-12 gap-6 h-[calc(100vh-200px)]">
+                    <!-- Contact List -->
+                    <div class="col-span-4 bg-white rounded-xl shadow-lg overflow-y-auto">
+                        <div class="p-4 border-b">
+                            <h4 class="font-semibold text-lg text-emerald-800">Kontak ${userRole}</h4>
+                        </div>
+                        <ul class="divide-y">
+                            ${users && users.length > 0 ? users.map(user => `
+                                <li>
+                                    <a href="#" data-id="${user.id}" data-name="${user.name}" class="contact-item flex items-center p-4 hover:bg-emerald-50 ${state.activeChatPartner?.id === user.id ? 'bg-emerald-100' : ''}">
+                                        <div class="w-10 h-10 rounded-full bg-emerald-200 text-emerald-700 flex items-center justify-center font-bold mr-3">${user.name.charAt(0)}</div>
+                                        <span>${user.name}</span>
+                                    </a>
+                                </li>
+                            `).join('') : `<li class="p-4 text-gray-500">Tidak ada kontak tersedia.</li>`}
+                        </ul>
+                    </div>
+                    <!-- Chat Window -->
+                    <div id="chat-window-container" class="col-span-8 bg-white rounded-xl shadow-lg flex flex-col">
+                        ${state.activeChatPartner ? ChatWindow(state.activeChatPartner) : WelcomeChatScreen()}
                     </div>
                 </div>
             `;
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-            document.getElementById('close-modal-btn')?.addEventListener('click', closeModal);
-            document.getElementById('modal-backdrop').addEventListener('click', (e) => {
-                if (e.target.id === 'modal-backdrop') {
-                    closeModal();
-                }
-            });
         }
-        
-        function openModal(header, content) {
-            state.modal.isOpen = true;
-            state.modal.header = header;
-            state.modal.content = content;
-            render();
+        function WelcomeChatScreen() {
+            return `
+                <div class="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                    <i data-lucide="messages-square" class="w-24 h-24 text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold">Pilih Kontak</h3>
+                    <p>Silakan pilih kontak dari daftar di sebelah kiri untuk memulai percakapan.</p>
+                </div>
+            `;
         }
-
-        function closeModal() {
-            state.modal.isOpen = false;
-            render();
-        }
-
-        // --- ATTACH LISTENERS FOR PAGES ---
-        function attachSiswaJanjiTemuListeners() {
-            document.getElementById('form-janji-temu')?.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const newAppointment = {
-                    id: db.appointments.length + 1,
-                    studentId: state.currentUser.id,
-                    counselorId: document.getElementById('counselor').value,
-                    date: document.getElementById('date').value,
-                    time: document.getElementById('time').value,
-                    topic: document.getElementById('topic').value,
-                    status: 'Menunggu'
-                };
-                db.appointments.push(newAppointment);
-                render();
-            });
-        }
-        function attachGuruBKJanjiTemuListeners() {
-            document.querySelectorAll('.approve-btn').forEach(btn => btn.addEventListener('click', (e) => {
-                const id = parseInt(e.target.dataset.id);
-                db.appointments.find(a => a.id === id).status = 'Disetujui';
-                render();
-            }));
-            document.querySelectorAll('.reject-btn').forEach(btn => btn.addEventListener('click', (e) => {
-                const id = parseInt(e.target.dataset.id);
-                db.appointments.find(a => a.id === id).status = 'Ditolak';
-                render();
-            }));
-        }
-        function attachMateriPageListeners(canEdit = false) {
-            document.querySelectorAll('.article-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const articleId = parseInt(card.dataset.articleId);
-                    const article = db.articles.find(a => a.id === articleId);
-                    if (article) {
-                        const header = `<h3 class="text-2xl font-bold text-emerald-900">${article.title}</h3>
-                                      <p class="text-sm text-gray-500">Oleh: ${article.author} | Kategori: ${article.category}</p>`;
-                        openModal(header, article.fullContent);
-                    }
-                });
-            });
-
-            if (canEdit) {
-                 // Logic for adding new material can be added here
-            }
-        }
-        function attachOsisProposalListeners(canApprove = false) {
-             if (canApprove) {
-                document.querySelectorAll('.approve-proposal-btn').forEach(btn => btn.addEventListener('click', (e) => {
-                    const id = parseInt(e.target.dataset.id);
-                    db.proposals.find(p => p.id === id).status = 'Disetujui';
-                    render();
-                }));
-                document.querySelectorAll('.reject-proposal-btn').forEach(btn => btn.addEventListener('click', (e) => {
-                    const id = parseInt(e.target.dataset.id);
-                    db.proposals.find(p => p.id === id).status = 'Ditolak';
-                    render();
-                }));
-            }
-             document.getElementById('add-proposal-btn')?.addEventListener('click', () => {
-                // Logic for adding new proposal can be added here
-                alert('Fitur tambah proposal belum diimplementasikan.');
-            });
-        }
-        function attachOsisKeuanganListeners() {
-             document.getElementById('form-keuangan')?.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const description = document.getElementById('description').value;
-                const amount = parseInt(document.getElementById('amount').value);
-                if (description && amount > 0) {
-                    const newTransaction = {
-                        id: db.finances.length + 1,
-                        date: new Date().toISOString().split('T')[0],
-                        description: description,
-                        type: document.getElementById('type').value,
-                        amount: amount
-                    };
-                    db.finances.push(newTransaction);
-                    render();
-                }
-            });
-        }
-        function attachOsisForumListeners() {
-             document.getElementById('add-thread-btn')?.addEventListener('click', () => {
-                const title = document.getElementById('new-thread-title').value;
-                if(title) {
-                    db.forum.push({
-                        id: db.forum.length + 1,
-                        title: title,
-                        author: state.currentUser.name,
-                        replies: []
-                    });
-                    render();
-                }
-            });
-            document.querySelectorAll('.reply-input').forEach(input => {
-                input.parentElement.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const threadId = parseInt(e.target.dataset.threadId);
-                    const text = input.value;
-                    if(text) {
-                        db.forum.find(t => t.id === threadId).replies.push({
-                            author: state.currentUser.name,
-                            text: text
-                        });
-                        render();
-                    }
-                });
-            });
-        }
-        function attachSiswaChatListeners() {
-            document.querySelectorAll('.chat-contact').forEach(el => {
-                el.addEventListener('click', () => {
-                    state.activeChatUserId = el.dataset.id;
-                    render();
-                });
-            });
-
-            document.getElementById('chat-form')?.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const input = document.getElementById('chat-input');
-                const text = input.value.trim();
-                if (text && state.activeChatUserId) {
-                    const chatKey = `${state.currentUser.id}-${state.activeChatUserId}`;
-                    if (!db.chats[chatKey]) db.chats[chatKey] = [];
-                    db.chats[chatKey].push({
-                        sender: state.currentUser.id,
-                        text: text,
-                        timestamp: new Date()
-                    });
-                    input.value = '';
-                    render();
-                    document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
-                }
-            });
-        }
-        function attachGuruBKChatListeners() {
-            document.querySelectorAll('.chat-contact').forEach(el => {
-                el.addEventListener('click', () => {
-                    state.activeChatUserId = el.dataset.id;
-                    render();
-                });
-            });
-
-             document.getElementById('chat-form')?.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const input = document.getElementById('chat-input');
-                const text = input.value.trim();
-                if (text && state.activeChatUserId) {
-                    const chatKey = `${state.activeChatUserId}-${state.currentUser.id}`;
-                    if (!db.chats[chatKey]) db.chats[chatKey] = [];
-                    db.chats[chatKey].push({
-                        sender: state.currentUser.id,
-                        text: text,
-                        timestamp: new Date()
-                    });
-                    input.value = '';
-                    render();
-                    document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
-                }
-            });
-        }
-
-        function attachLaporPerilakuListeners() {
-            document.getElementById('form-lapor-perilaku')?.addEventListener('submit', (e) => {
-                e.preventDefault();
-                 const reportText = document.getElementById('report').value;
-                if (reportText) {
-                    const newReport = {
-                        id: db.behaviorReports.length + 1,
-                        studentId: document.getElementById('student').value,
-                        teacherId: state.currentUser.id,
-                        date: new Date().toISOString().split('T')[0],
-                        report: reportText,
-                    };
-                    db.behaviorReports.push(newReport);
-                    render();
-                }
-            });
-        }
-        
-        function attachPekerjaanSiswaListeners() {
-            document.getElementById('form-pekerjaan-siswa')?.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const taskName = document.getElementById('task-name').value;
-                const score = document.getElementById('task-score').value;
-                if(taskName && score) {
-                    const newRecord = {
-                        id: db.studentTasks.length + 1,
-                        studentId: document.getElementById('student-task').value,
-                        teacherId: state.currentUser.id,
-                        date: new Date().toISOString().split('T')[0],
-                        task: taskName,
-                        score: score,
-                        notes: document.getElementById('task-notes').value
-                    };
-                    db.studentTasks.push(newRecord);
-                    render();
-                }
-            });
-        }
-        
-        function attachKelolaPenggunaListeners() {
-            // Add User button listener
-            document.getElementById('add-user-btn')?.addEventListener('click', () => {
-                const formId = 'form-add-user';
-                const header = `<h3 class="text-2xl font-bold text-emerald-900">Tambah Pengguna Baru</h3>`;
-                const content = `
-                    <form id="${formId}" class="space-y-4">
-                        <p id="add-user-error" class="text-red-500 text-sm hidden"></p>
-                        <div>
-                            <label for="new-user-id" class="block text-sm font-medium text-gray-700">ID Pengguna</label>
-                            <input type="text" id="new-user-id" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
-                        </div>
-                        <div>
-                            <label for="new-user-name" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
-                            <input type="text" id="new-user-name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
-                        </div>
-                         <div>
-                            <label for="new-user-password" class="block text-sm font-medium text-gray-700">Password</label>
-                            <input type="password" id="new-user-password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
-                        </div>
-                        <div>
-                            <label for="new-user-role" class="block text-sm font-medium text-gray-700">Peran</label>
-                            <select id="new-user-role" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
-                                <option value="siswa">Siswa</option>
-                                <option value="guru_bk">Guru BK</option>
-                                <option value="guru_mapel">Guru Mapel</option>
-                                <option value="osis">OSIS</option>
-                                <option value="pembina">Pembina</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
-                        <div class="text-right">
-                            <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-green">Simpan</button>
-                        </div>
+        function ChatWindow(partner) {
+            return `
+                <div class="p-4 border-b flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-emerald-200 text-emerald-700 flex items-center justify-center font-bold mr-3">${partner.name.charAt(0)}</div>
+                    <h4 class="font-semibold text-lg text-emerald-800">${partner.name}</h4>
+                </div>
+                <div id="message-list" class="flex-grow p-4 space-y-4 overflow-y-auto">
+                    <!-- Messages will be rendered here by JS -->
+                    <div class="text-center"><i data-lucide="loader-2" class="animate-spin w-8 h-8 text-emerald-500"></i></div>
+                </div>
+                <div class="p-4 border-t">
+                    <form id="chat-form" class="flex gap-3">
+                        <input type="text" id="chat-input" class="w-full p-2 border rounded-lg" placeholder="Ketik pesan..." autocomplete="off" required>
+                        <button type="submit" class="bg-emerald-600 text-white px-4 rounded-lg font-semibold hover:bg-emerald-700 shadow-md btn-glow-green flex items-center"><i data-lucide="send" class="w-5 h-5"></i></button>
                     </form>
+                </div>
+            `;
+        }
+        function renderMessages(messages) {
+            const messageListEl = document.getElementById('message-list');
+            if (!messageListEl) return;
+            messageListEl.innerHTML = messages.length > 0 ? messages.map(msg => {
+                const isSent = msg.sender_id === state.currentUser.id;
+                return `
+                    <div class="flex ${isSent ? 'justify-end' : 'justify-start'}">
+                        <div class="max-w-xs md:max-w-md p-3 ${isSent ? 'chat-bubble-sent' : 'chat-bubble-received'}">
+                            <p>${msg.content}</p>
+                            <p class="text-xs opacity-75 mt-1 text-right">${new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                    </div>
                 `;
-                openModal(header, content);
+            }).join('') : `<p class="text-center text-gray-400">Belum ada pesan. Mulai percakapan!</p>`;
+            messageListEl.scrollTop = messageListEl.scrollHeight;
+        }
+        async function selectChatPartner(partnerId, partnerName) {
+            state.activeChatPartner = { id: partnerId, name: partnerName };
+            
+            // Unsubscribe from old channel if exists
+            if (state.messageSubscription) {
+                supabase.removeChannel(state.messageSubscription);
+                state.messageSubscription = null;
+            }
 
-                // Attach listener to the form inside the newly created modal
-                document.getElementById(formId)?.addEventListener('submit', (e) => {
+            const chatWindowContainer = document.getElementById('chat-window-container');
+            if(chatWindowContainer) {
+                chatWindowContainer.innerHTML = ChatWindow(state.activeChatPartner);
+                lucide.createIcons();
+                attachChatFormListener();
+            }
+
+            const { data, error } = await supabase.from('messages')
+                .select('*')
+                .or(`(sender_id.eq.${state.currentUser.id},receiver_id.eq.${partnerId}),(sender_id.eq.${partnerId},receiver_id.eq.${state.currentUser.id})`)
+                .order('created_at', { ascending: true });
+            
+            if (data) {
+                state.messages = data;
+                renderMessages(state.messages);
+            }
+            
+            // Subscribe to new messages
+            state.messageSubscription = supabase.channel(`chat-${state.currentUser.id}-${partnerId}`)
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                    const newMessage = payload.new;
+                    // Check if the message belongs to this chat
+                    if ((newMessage.sender_id === state.currentUser.id && newMessage.receiver_id === partnerId) || 
+                        (newMessage.sender_id === partnerId && newMessage.receiver_id === state.currentUser.id)) {
+                        state.messages.push(newMessage);
+                        renderMessages(state.messages);
+                    }
+                })
+                .subscribe();
+        }
+        function attachChatListeners() {
+            document.querySelectorAll('.contact-item').forEach(item => {
+                item.addEventListener('click', e => {
                     e.preventDefault();
-                    const id = document.getElementById('new-user-id').value.trim();
-                    const name = document.getElementById('new-user-name').value.trim();
-                    const password = document.getElementById('new-user-password').value;
-                    const role = document.getElementById('new-user-role').value;
-                    const errorEl = document.getElementById('add-user-error');
-
-                    if (!id || !name || !password || !role) {
-                        errorEl.textContent = 'Semua field harus diisi.';
-                        errorEl.classList.remove('hidden');
-                        return;
-                    }
-
-                    if (db.users.some(u => u.id === id)) {
-                        errorEl.textContent = `ID Pengguna '${id}' sudah digunakan.`;
-                        errorEl.classList.remove('hidden');
-                        return;
-                    }
-
-                    db.users.push({ id, name, password, role });
-                    closeModal();
+                    document.querySelectorAll('.contact-item').forEach(i => i.classList.remove('bg-emerald-100'));
+                    e.currentTarget.classList.add('bg-emerald-100');
+                    const partnerId = e.currentTarget.dataset.id;
+                    const partnerName = e.currentTarget.dataset.name;
+                    selectChatPartner(partnerId, partnerName);
                 });
             });
-
-            // Delete User button listeners
-            document.querySelectorAll('.delete-user-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const userId = e.currentTarget.dataset.id;
-                    const user = db.users.find(u => u.id === userId);
-                    if (!user) return;
-
-                    const header = `<h3 class="text-2xl font-bold text-red-700">Konfirmasi Penghapusan</h3>`;
-                    const content = `
-                        <p class="text-gray-700">Apakah Anda yakin ingin menghapus pengguna <strong>${user.name}</strong> (ID: ${user.id})?</p>
-                        <p class="text-sm text-red-600 mt-2">Tindakan ini tidak dapat diurungkan.</p>
-                        <div class="text-right mt-6">
-                            <button id="confirm-delete-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 shadow-md transform hover:-translate-y-0.5 transition-all duration-300 active:scale-95 btn-glow-red">Ya, Hapus</button>
-                        </div>
-                    `;
-                    openModal(header, content);
-
-                    document.getElementById('confirm-delete-btn')?.addEventListener('click', () => {
-                        db.users = db.users.filter(u => u.id !== userId);
-                        closeModal();
-                    });
-                });
+            if (state.activeChatPartner) {
+                attachChatFormListener();
+            }
+        }
+        function attachChatFormListener() {
+             document.getElementById('chat-form')?.addEventListener('submit', async e => {
+                e.preventDefault();
+                const input = document.getElementById('chat-input');
+                const content = input.value.trim();
+                if (content && state.activeChatPartner) {
+                    const message = {
+                        sender_id: state.currentUser.id,
+                        receiver_id: state.activeChatPartner.id,
+                        content: content
+                    };
+                    input.value = '';
+                    await supabase.from('messages').insert(message);
+                }
             });
         }
 
-        document.addEventListener('DOMContentLoaded', render);
+        // --- MODAL SYSTEM & HANDLERS ---
+        function openModal(header, content) { state.modal = { isOpen: true, header, content }; render(); }
+        function closeModal() { state.modal.isOpen = false; render(); }
+        function renderModal() {
+             const modalHTML = `<div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 transition-opacity duration-300"><div id="modal-content" class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col transform scale-95 opacity-0 transition-all duration-300"><div class="flex-shrink-0 flex justify-between items-center">${state.modal.header} <button id="close-modal-x" class="text-gray-400 hover:text-gray-600">&times;</button></div><div class="overflow-y-auto mt-4">${state.modal.content}</div></div></div>`;
+             if (!document.getElementById('modal-backdrop')) {
+                 document.body.insertAdjacentHTML('beforeend', modalHTML);
+                 setTimeout(() => { document.getElementById('modal-backdrop').classList.add('opacity-100'); document.getElementById('modal-content').classList.remove('scale-95','opacity-0'); document.getElementById('modal-content').classList.add('scale-100','opacity-100');}, 10);
+                 lucide.createIcons();
+                 document.getElementById('modal-backdrop').addEventListener('click', e => e.target.id === 'modal-backdrop' && closeModal());
+                 document.getElementById('close-modal-x').addEventListener('click', closeModal);
+             }
+        }
+        function showViewMaterialModal(material) {
+            const header = `<h3 class="text-2xl font-bold text-emerald-800">${material.title}</h3>`;
+            const content = `<div class="prose">${material.content.replace(/\n/g, '<br>')}</div>`;
+            openModal(header, content);
+        }
+        function showAddMaterialModal() {
+            const header = `<h3 class="text-2xl font-bold text-emerald-800">Tambah Materi Baru</h3>`;
+            const content = `<form id="add-material-form" class="space-y-4"><div><label class="block text-sm">Judul</label><input type="text" id="new-material-title" class="w-full mt-1 p-2 border rounded-lg" required></div><div><label class="block text-sm">Konten</label><textarea id="new-material-content" rows="10" class="w-full mt-1 p-2 border rounded-lg" required></textarea></div><div class="text-right pt-4"><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md btn-glow-green">Simpan</button></div></form>`;
+            openModal(header, content);
+            document.getElementById('add-material-form')?.addEventListener('submit', handleAddMaterial);
+        }
+        async function handleAddMaterial(e) {
+            e.preventDefault();
+            const title = document.getElementById('new-material-title').value;
+            const content = document.getElementById('new-material-content').value;
+            const { error } = await supabase.from('materials').insert({ title, content });
+            if (error) { showNotification(`Gagal: ${error.message}`, 'error'); } 
+            else { showNotification("Materi berhasil ditambahkan!", 'success'); closeModal(); render(); }
+        }
+        function showEditMaterialModal(material) {
+            const header = `<h3 class="text-2xl font-bold text-emerald-800">Edit Materi</h3>`;
+            const content = `<form id="edit-material-form" class="space-y-4"><div><label class="block text-sm">Judul</label><input type="text" id="edit-material-title" class="w-full mt-1 p-2 border rounded-lg" value="${material.title}" required></div><div><label class="block text-sm">Konten</label><textarea id="edit-material-content" rows="10" class="w-full mt-1 p-2 border rounded-lg" required>${material.content}</textarea></div><div class="text-right pt-4"><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md btn-glow-green">Update</button></div></form>`;
+            openModal(header, content);
+            document.getElementById('edit-material-form')?.addEventListener('submit', (e) => handleEditMaterial(e, material.id));
+        }
+        async function handleEditMaterial(e, id) {
+            e.preventDefault();
+            const title = document.getElementById('edit-material-title').value;
+            const content = document.getElementById('edit-material-content').value;
+            const { error } = await supabase.from('materials').update({ title, content }).eq('id', id);
+            if (error) { showNotification(`Gagal: ${error.message}`, 'error'); }
+            else { showNotification("Materi berhasil diperbarui!", 'success'); closeModal(); render(); }
+        }
+        function showDeleteMaterialModal(id, title) {
+             const header = `<h3 class="text-2xl font-bold text-red-600">Hapus Materi</h3>`;
+             const content = `<p>Apakah Anda yakin ingin menghapus materi <strong>${title}</strong>?</p><div class="text-right pt-4 flex gap-2 justify-end"><button id="cancel-delete" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300">Batal</button><button id="confirm-delete" class="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700">Ya, Hapus</button></div>`;
+             openModal(header, content);
+             document.getElementById('cancel-delete').addEventListener('click', closeModal);
+             document.getElementById('confirm-delete').addEventListener('click', () => handleDeleteMaterial(id));
+        }
+        async function handleDeleteMaterial(id) {
+            const { error } = await supabase.from('materials').delete().eq('id', id);
+            if (error) { showNotification(`Gagal: ${error.message}`, 'error'); }
+            else { showNotification("Materi berhasil dihapus.", 'success'); closeModal(); render(); }
+        }
+        
+        // --- MODAL PENGGUNA (UNCHANGED) ---
+        function showAddUserModal() { /* ... unchanged ... */ const header = `<h3 class="text-2xl font-bold text-emerald-800">Tambah Pengguna Baru</h3>`; const content = `<div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert"><p class="font-bold">Penting!</p><p>Membuat pengguna dari sisi klien tidak disarankan untuk produksi. Gunakan Supabase Edge Function untuk keamanan maksimal.</p></div><form id="add-user-form" class="space-y-4"><div><label class="block text-sm">Email</label><input type="email" id="new-user-email" class="w-full mt-1 p-2 border rounded-lg" required></div><div><label class="block text-sm">Nama Lengkap</label><input type="text" id="new-user-name" class="w-full mt-1 p-2 border rounded-lg" required></div><div><label class="block text-sm">Password</label><input type="password" id="new-user-password" class="w-full mt-1 p-2 border rounded-lg" required></div><div><label class="block text-sm">Peran</label><select id="new-user-role" class="w-full mt-1 p-2 border rounded-lg"><option value="siswa">Siswa</option><option value="guru_bk">Guru BK</option></select></div><p id="add-user-error" class="text-red-500 text-sm hidden"></p><div class="text-right pt-4 flex gap-2 justify-end"><button type="button" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 shadow-md btn-glow-gray" id="cancel-add-user">Batal</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 shadow-md btn-glow-green">Simpan</button></div></form>`; openModal(header, content); document.getElementById('cancel-add-user')?.addEventListener('click', closeModal); document.getElementById('add-user-form')?.addEventListener('submit', handleAddUser); }
+        async function handleAddUser(e) { /* ... unchanged ... */ e.preventDefault(); const email = document.getElementById('new-user-email').value; const password = document.getElementById('new-user-password').value; const name = document.getElementById('new-user-name').value; const role = document.getElementById('new-user-role').value; const errorEl = document.getElementById('add-user-error'); const { data, error } = await supabase.functions.invoke('create-user', { body: { email, password, name, role }, }); if (error) { errorEl.textContent = `Gagal menambah pengguna: ${error.message}`; errorEl.classList.remove('hidden'); console.error('Function invoke error:', error); } else if (data.error) { errorEl.textContent = `Gagal menambah pengguna: ${data.error}`; errorEl.classList.remove('hidden'); console.error('Function logic error:', data.error); } else { showNotification("Pengguna baru berhasil ditambahkan!", 'success'); closeModal(); render(); } }
+        function showDeleteUserModal(userId, userName) { /* ... unchanged ... */ const header = `<h3 class="text-2xl font-bold text-red-600">Hapus Pengguna</h3>`; const content = `<p>Apakah Anda yakin ingin menghapus pengguna <strong>${userName}</strong>? Tindakan ini tidak dapat diurungkan.</p><div class="text-right pt-4 flex gap-2 justify-end"><button id="cancel-delete" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300">Batal</button><button id="confirm-delete" class="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700">Ya, Hapus</button></div>`; openModal(header, content); document.getElementById('cancel-delete').addEventListener('click', closeModal); document.getElementById('confirm-delete').addEventListener('click', () => handleDeleteUser(userId)); }
+        async function handleDeleteUser(userId) { /* ... unchanged ... */ const { error } = await supabase.functions.invoke('delete-user', { body: { id: userId } }); if (error) { showNotification(`Gagal menghapus pengguna: ${error.message}`, 'error'); } else { showNotification("Pengguna berhasil dihapus.", 'success'); closeModal(); render(); } }
+
+        // --- UTILITIES ---
+        function showNotification(message, type = 'success') { const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500'; const notification = document.createElement('div'); notification.className = `fixed top-5 right-5 ${bgColor} text-white py-2 px-4 rounded-lg shadow-lg transform translate-x-full animate-slide-in`; notification.textContent = message; document.body.appendChild(notification); setTimeout(() => { notification.classList.remove('animate-slide-in'); notification.classList.add('animate-slide-out'); setTimeout(() => { document.body.removeChild(notification); }, 500); }, 3000); }
+        const styleSheet = document.createElement("style"); styleSheet.type = "text/css"; styleSheet.innerText = `@keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } } .animate-slide-in { animation: slide-in 0.5s forwards; } @keyframes slide-out { from { transform: translateX(0); } to { transform: translateX(110%); } } .animate-slide-out { animation: slide-out 0.5s forwards; }`; document.head.appendChild(styleSheet);
+
+
+        // --- INISIALISASI APLIKASI ---
+        async function initializeApp() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) { await fetchUserProfile(session.user); }
+            render();
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_OUT') {
+                    state.currentUser = null;
+                    render();
+                } else if (event === 'SIGNED_IN' && session) {
+                    fetchUserProfile(session.user).then(render);
+                }
+            });
+        }
+        initializeApp();
     </script>
 </body>
 </html>
